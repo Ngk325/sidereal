@@ -70,6 +70,14 @@ because the URL does not exist yet.
 POST /api/render     { email, config }        → { jobId }
 GET  /api/job/:id                             → { status, done, total, bytes }
 GET  /f/:id                                   → the mp4
+
+internal, container→Worker, all behind x-render-secret:
+POST /api/internal/status                     → progress and terminal state
+PUT  /api/internal/upload?jobId               → the whole file, when it is small
+POST /api/internal/upload/start?jobId         → { uploadId, partSize }
+PUT  /api/internal/upload/part?jobId&uploadId&part
+POST /api/internal/upload/finish?jobId&uploadId  { parts }
+POST /api/internal/upload/abort?jobId&uploadId
 ```
 
 `config` mirrors the browser's job snapshot:
@@ -80,9 +88,12 @@ GET  /f/:id                                   → the mp4
   "place_label": "Bridgeport, Connecticut",
   "seed":    { "date": "1989-03-25", "time": "03:17", "lat": 41.1865, "lon": -73.1952, "tz": -5 },
   "present": { "date": "2026-08-11", "time": "12:00", "lat": 41.1865, "lon": -73.1952, "tz": -4 },
-  "anchor": "start",
-  "frames": 144,
-  "fps": 12,
+  "anchor": "centre",
+  "duration": 60,
+  "fps": 60,
+  "span_hours": 12,
+  "size": 1440,
+  "quality": "web",
   "print_seed": 19890325,
   "message": "WHAT WAS ALREADY TRUE",
   "mark": true
@@ -91,14 +102,34 @@ GET  /f/:id                                   → the mp4
 
 Omit `present` for a single-moment sweep.
 
+A lapse is specified the way it is watched — a `duration` in seconds and an `fps` —
+and the container multiplies them into a frame count. `frames` still works and still
+wins when given (the smoke test asks for six), but sending both is a 400: they are two
+ways of saying the same thing and silently ignoring one hides a mistake.
+
+`span_hours` is how much sky the video sweeps, not how long it plays. The default 12
+puts the moment at the middle of ±6 hours, which is the calmest motion; 24 covers the
+whole day and moves through it twice as fast.
+
+`quality` is `web` (yuv420p, plays anywhere) or `master` (yuv444p, full chroma, which
+Safari and most hardware decoders refuse). See **Timing and cost** for the measurements
+behind that choice. `crf`, `preset` and `pix_fmt` override it directly if you want
+something else.
+
 The front end builds this shape in `toServiceConfig()` — the browser's internal job
 snapshot is a different shape, and the mapping lives on the client so the server's
 schema stays the one both sides are written against.
 
-Every field is bounded before a job is created: `frames` 1–288, `fps` 1–30, latitude
-±90, longitude ±180, UTC offset ±14, dates `YYYY-MM-DD`, times `HH:MM`, `anchor` one of
-`calendar`/`start`/`centre`, `message` ≤ 240 characters. A bad field comes back as a 400
-naming it. This is what stops a single request asking for a hundred thousand frames.
+Every field is bounded before a job is created: `duration` 0–60s, `fps` 1–60, `frames`
+1–3600, `size` 240–2160 and even, `span_hours` 0–48, latitude ±90, longitude ±180, UTC
+offset ±14, dates `YYYY-MM-DD`, times `HH:MM`, `anchor` one of `calendar`/`start`/`centre`,
+`quality` one of `web`/`master`, `message` ≤ 240 characters. A bad field comes back as a
+400 naming it.
+
+Those single-field caps are not the real ceiling. 3600 frames at 1440px is the intended
+job; 3600 frames at 2160px is twice the work and no more suspicious-looking, so what is
+actually bounded is **frames × megapixels** (`MAX_WORK` in `limits.ts`). This is what
+stops one request asking for hours of CPU.
 
 ## Rate limiting
 
@@ -107,6 +138,13 @@ by `RATE_PER_HOUR` and `RATE_PER_DAY` in `wrangler.jsonc`. Either can be set to 
 turn that window off. Over the limit returns 429 with a `Retry-After` header and a
 message the front end shows verbatim; the browser then offers to render the job locally
 instead, so being refused is never a dead end.
+
+**Those numbers were set against a much smaller job.** A 144-frame lapse was about one
+vCPU-minute; the 60-second default is roughly ten. The per-IP ceiling did not change, so
+the CPU one address can spend in a day went up with it — on the order of $0.10–0.15 of
+container CPU per IP per day at the default limits, and more if you raise them. That is
+a decision for whoever owns the account, so nothing here was lowered on your behalf:
+look at `RATE_PER_HOUR` and `RATE_PER_DAY` before pointing anyone at this.
 
 Counters live in the `JOBS` KV namespace under an `rl:` prefix, so there is no extra
 binding to create. **KV is eventually consistent**, which makes this a soft ceiling: a
@@ -139,9 +177,64 @@ See [`test/README.md`](test/README.md).
 
 ## Timing and cost
 
-About 0.9s per frame on `standard-1`, so a 144-frame lapse is roughly 2–3 minutes of
-CPU plus a few seconds of muxing. Four jobs run concurrently by default
-(`max_concurrency` on the queue consumer); raise it and `max_instances` together.
+A 60-second lapse is 3600 frames. Measured on a 4-core box: **107 ms per frame**, and
+**3.6 minutes wall clock** for the whole thing including the encode, which runs
+concurrently with the rendering and takes roughly half the CPU.
+
+Three things carry that, and they are worth knowing before changing any of them:
+
+- **The seed layer is drawn once, not 3600 times.** When a fixed seed is held against
+  a sweeping present, the seed's own layer and its ink are identical on every frame —
+  and the seed usually carries the higher rotational order, so its ink is the expensive
+  one. Hoisting it into a per-job backdrop removed about two thirds of the frame cost.
+- **The ink counts hits into one histogram** and multiplies by the colour once, instead
+  of scattering colour into the image with `np.ufunc.at` for every step of every
+  particle.
+- **Frames never touch the disk.** They are piped raw into ffmpeg. 3600 PNGs at 1440px
+  would have been several gigabytes and a PNG encode per frame, to hand ffmpeg pixels
+  it already had.
+
+A **single-moment sweep** — one with no `present` — gets none of the first of those,
+because the moment being drawn is the one that moves. Nothing is frame-invariant, so it
+runs around three times slower: budget closer to 10 minutes for a full 60 seconds. It is
+also the more active picture, since the whole plate turns rather than just the blue
+layer.
+
+`instance_type` is `standard-4` (4 vCPU). This matters more than it looks: `standard-1`
+is **half** a vCPU, and the renderer splits frames across every core it is given, so
+half a core turns a ~4 minute render into something over half an hour. Containers bill
+active CPU, so the wide instance costs little more for the same work — it just finishes
+sooner. Four jobs run concurrently by default (`max_concurrency` on the queue consumer);
+raise it and `max_instances` together.
+
+### Why `web` is 4:2:0 and what `master` buys
+
+PSNR of the encoded file against the raw frames, measured on this content:
+
+| pix_fmt | crf | size (60s) | PSNR |
+| ------- | --- | ---------- | ---- |
+| yuv420p | 14  | 204 MB     | 35.83 dB |
+| yuv420p | 18  | 118 MB     | 35.76 dB |
+| yuv420p | 23  | 52 MB      | 35.45 dB |
+| yuv444p | 16  | 157 MB     | 38.00 dB |
+
+4:2:0 sits on a hard ceiling around 35.8 dB and no amount of bitrate moves it — the
+loss is the chroma downsample, not the quantiser, and the plate is one-pixel gold lines
+on near-black, which is the content that survives it worst. So `web` spends nothing on
+crf 14: crf 18 is within 0.07 dB of the ceiling at half the size. `master` spends the
+same bytes on full chroma instead and gains a real 2.2 dB, at the cost of High 4:4:4
+Predictive — which Safari, iOS and most hardware decoders will not play. That is the
+whole trade, and it is why the default is the one that opens on a phone.
+
+### The upload is chunked, and has to be
+
+Cloudflare caps a **request body** by account plan — 100 MB on Free and Pro — and the
+container's upload arrives over the public edge like any other request. A 60-second
+1440p60 lapse is about 110 MB, which is past it. So anything over 64 MB goes up as an
+R2 multipart upload: several requests of 24 MB each, assembled into one object by
+`/api/internal/upload/finish`. No new credentials — the same shared secret
+authenticates every leg — and a failure aborts the upload so half-stored parts stop
+billing. Small renders still take the one-shot `PUT`.
 
 ## Things worth knowing before you rely on it
 

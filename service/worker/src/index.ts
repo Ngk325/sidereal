@@ -24,6 +24,11 @@ export class Renderer extends Container<Env> {
 const json = (o: unknown, status = 200) =>
   new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json" } });
 
+// How much of the mp4 travels in one request. Under the 100 MB request-body cap
+// that Free and Pro accounts enforce, and over R2's 5 MiB minimum part size. The
+// container reads this back from /upload/start rather than hard-coding it.
+const PART_SIZE = 24 * 1024 * 1024;
+
 interface Job {
   id: string;
   name: string;
@@ -125,19 +130,65 @@ export default {
       return json({ ok: true });
     }
 
-    if (url.pathname === "/api/internal/upload" && req.method === "PUT") {
+    // Upload, in one shot or in parts.
+    //
+    // Cloudflare caps a *request body* by account plan — 100 MB on Free and Pro —
+    // and that cap applies to the container's PUT, because it arrives over the
+    // public edge like any other request. A 60-second 1440p lapse is comfortably
+    // past it, so anything large goes up as an R2 multipart upload: several
+    // requests, each under the cap, assembled into one object at the end. No new
+    // credentials — the same shared secret authenticates every leg.
+    if (url.pathname.startsWith("/api/internal/upload")) {
       if (req.headers.get("x-render-secret") !== env.RENDER_SECRET) return json({ error: "no" }, 401);
-      const id = url.searchParams.get("jobId")!;
-      await env.RENDERS.put(`${id}.mp4`, req.body, {
-        httpMetadata: { contentType: "video/mp4" },
-      });
-      const raw = await env.JOBS.get(id);
-      if (raw) {
-        const job = JSON.parse(raw) as Job;
-        job.key = `${id}.mp4`;
-        await env.JOBS.put(id, JSON.stringify(job), { expirationTtl: 60 * 60 * 24 * 30 });
+      const id = url.searchParams.get("jobId");
+      if (!id) return json({ error: "jobId is required" }, 400);
+      const key = `${id}.mp4`;
+      const meta = { httpMetadata: { contentType: "video/mp4" } };
+
+      const markStored = async () => {
+        const raw = await env.JOBS.get(id);
+        if (raw) {
+          const job = JSON.parse(raw) as Job;
+          job.key = key;
+          await env.JOBS.put(id, JSON.stringify(job), { expirationTtl: 60 * 60 * 24 * 30 });
+        }
+      };
+
+      if (url.pathname === "/api/internal/upload" && req.method === "PUT") {
+        await env.RENDERS.put(key, req.body, meta);
+        await markStored();
+        return json({ ok: true });
       }
-      return json({ ok: true });
+      if (url.pathname === "/api/internal/upload/start" && req.method === "POST") {
+        const mp = await env.RENDERS.createMultipartUpload(key, meta);
+        return json({ uploadId: mp.uploadId, partSize: PART_SIZE });
+      }
+      if (url.pathname === "/api/internal/upload/part" && req.method === "PUT") {
+        const uploadId = url.searchParams.get("uploadId");
+        const n = Number(url.searchParams.get("part"));
+        if (!uploadId || !Number.isInteger(n) || n < 1)
+          return json({ error: "uploadId and a part number from 1 are required" }, 400);
+        const mp = env.RENDERS.resumeMultipartUpload(key, uploadId);
+        const part = await mp.uploadPart(n, await req.arrayBuffer());
+        return json({ partNumber: part.partNumber, etag: part.etag });
+      }
+      if (url.pathname === "/api/internal/upload/finish" && req.method === "POST") {
+        const uploadId = url.searchParams.get("uploadId");
+        if (!uploadId) return json({ error: "uploadId is required" }, 400);
+        const { parts } = await req.json<{ parts: R2UploadedPart[] }>();
+        if (!Array.isArray(parts) || !parts.length) return json({ error: "parts are required" }, 400);
+        await env.RENDERS.resumeMultipartUpload(key, uploadId).complete(parts);
+        await markStored();
+        return json({ ok: true });
+      }
+      if (url.pathname === "/api/internal/upload/abort" && req.method === "POST") {
+        const uploadId = url.searchParams.get("uploadId");
+        if (!uploadId) return json({ error: "uploadId is required" }, 400);
+        // An abandoned multipart upload keeps billing for the parts already stored.
+        await env.RENDERS.resumeMultipartUpload(key, uploadId).abort();
+        return json({ ok: true });
+      }
+      return json({ error: "not found" }, 404);
     }
 
     // ── static site ──────────────────────────────────────────────

@@ -13,7 +13,7 @@ Nothing in the image is decorative. Every mark is downstream of an input.
 - **Draws** a figure from one moment, or from two moments in relation
 - **Encrypts** a message into the outer glyph ring, keyed to those exact moments
 - **Decodes** the geometry back into language — an audited table plus a generated transmission
-- **Renders** a 24-hour lapse as video or a PNG frame sequence
+- **Renders** a lapse — one minute of 1440px video at 60fps by default — or a PNG frame sequence
 - **Emails** finished renders, when deployed with the hosted service
 
 ## Repository layout

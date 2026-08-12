@@ -71,7 +71,7 @@ await withPage('static', async (page, srv, logs) => {
   t('the helper text describes the browser queue', (await page.locator('#queueNote').innerText()).includes('in this browser'));
   t('no uncaught page errors', !logs.some(l => l.startsWith('PAGEERROR')), logs.filter(l => l.startsWith('PAGEERROR'))[0]);
 
-  await page.selectOption('#frames', '6');
+  await page.selectOption('#lapse', '0.5,12');
   await page.fill('#nameIn', 'Fallback test');
   const download = page.waitForEvent('download', { timeout: 60000 }).catch(() => null);
   await page.click('#queueBtn');
@@ -123,12 +123,15 @@ await withPage('live', async (page, srv, logs) => {
   t('place_label is a string', typeof c.place_label === 'string' && c.place_label.length > 0, c.place_label);
   t('message carries through', typeof c.message === 'string');
   t('mark and anchor carry through', typeof c.mark === 'boolean' && !!c.anchor);
-  t('fps is set', c.fps === 12);
-  t('none of the browser-only keys leak', !['dual','pres','format','msg','P'].some(k => k in c),
+  t('fps is set', c.fps === 60);
+  t('duration is sent instead of a frame count', c.duration === 60 && !('frames' in c));
+  t('the sweep span is sent', c.span_hours > 0);
+  t('quality is sent', c.quality === 'web');
+  t('none of the browser-only keys leak', !['dual','pres','format','msg','P','spanHours'].some(k => k in c),
     Object.keys(c).join(','));
 
   // progress bar driven by done/total from the server
-  await page.waitForFunction(() => /frame \d+ of 144 on the server/.test(document.body.innerText), { timeout: 20000 });
+  await page.waitForFunction(() => /frame \d+ of 3600 on the server/.test(document.body.innerText), { timeout: 20000 });
   const pct = await page.locator('.bar i').first().evaluate(e => e.style.width);
   t('the progress bar is driven by the server counts', /^\d+%$/.test(pct) && parseInt(pct) > 0 && parseInt(pct) < 100, pct);
 
@@ -146,7 +149,7 @@ console.log('\nSERVICE REFUSES THE JOB (429)');
 await withPage('ratelimited', async (page, srv) => {
   await page.waitForTimeout(1200);
   await drawFigure(page);
-  await page.selectOption('#frames', '6');
+  await page.selectOption('#lapse', '0.5,12');
   await page.fill('#nameIn', 'Refused');
   await page.fill('#emailIn', 'someone@example.com');
   await page.click('#queueBtn');
@@ -167,7 +170,7 @@ await withPage('live', async (page, srv) => {
   await page.waitForTimeout(1200);
   await drawFigure(page);
   await page.selectOption('#format', 'zip');
-  await page.selectOption('#frames', '6');
+  await page.selectOption('#lapse', '0.5,12');
   await page.fill('#nameIn', 'Zip stays local');
   await page.fill('#emailIn', 'someone@example.com');
   const download = page.waitForEvent('download', { timeout: 60000 }).catch(() => null);

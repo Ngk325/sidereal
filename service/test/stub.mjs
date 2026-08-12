@@ -42,10 +42,10 @@ export function makeServer(mode) {
       const j = jobs.get(id);
       if (!j) return send(404, { error: 'not found' });
       const n = j.polls++;
-      if (n === 0) return send(200, { id, status: 'queued', total: 144 });
-      if (n < 4) return send(200, { id, status: 'rendering', done: n * 36, total: 144 });
-      if (n === 4) return send(200, { id, status: 'uploading', done: 144, total: 144, bytes: 4194304 });
-      return send(200, { id, status: 'done', done: 144, total: 144, bytes: 4194304 });
+      if (n === 0) return send(200, { id, status: 'queued', total: 3600 });
+      if (n < 4) return send(200, { id, status: 'rendering', done: n * 900, total: 3600 });
+      if (n === 4) return send(200, { id, status: 'uploading', done: 3600, total: 3600, bytes: 4194304 });
+      return send(200, { id, status: 'done', done: 3600, total: 3600, bytes: 4194304 });
     }
 
     if (url.pathname.startsWith('/f/')) {

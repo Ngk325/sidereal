@@ -1,6 +1,17 @@
 """Sidereal Ink — 24-hour lapse.
 Seed moment fixed; present moment advances 10 minutes per frame across one full day.
 Renders frames to PNG and muxes to MP4.
+
+This is the small, readable illustration of the idea, and it stays that way: one file,
+no dependencies past numpy and PIL, a whole day in 144 frames.
+
+It is not what the service renders, and the difference is worth knowing before copying
+anything out of here. Time below advances in whole minutes, which is fine at a
+ten-minute step because every frame lands on a different minute. Shorten the step past
+that and it stops working: the clock is the only thing driving the plate, so frames
+inside the same minute come out byte-identical and the lapse plays as a series of jumps
+rather than as motion. service/container/render.py carries the fix — the digit registers
+still read the clock in whole minutes, but the sidereal angle reads the exact instant.
 """
 import numpy as np, math, os
 from PIL import Image, ImageDraw

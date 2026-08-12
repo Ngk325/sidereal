@@ -71,14 +71,46 @@ rej('message of 10k characters', c => c.message = 'A'.repeat(10000));
 rej('name of 5k characters', c => c.name = 'A'.repeat(5000));
 rej('place_label of 5k characters', c => c.place_label = 'A'.repeat(5000));
 rej('print_seed: 1.5', c => c.print_seed = 1.5);
+// The 60-second lapse raised the frame ceiling twelvefold, so what stops a runaway
+// job is no longer the frame count on its own — it is frames x pixels.
+rej('frames past the new maximum', c => c.frames = 3601);
+rej('fps: 120', c => { delete c.frames; c.fps = 120; });
+rej('duration: 600 seconds', c => { delete c.frames; c.duration = 600; });
+rej('duration: 0', c => { delete c.frames; c.duration = 0; });
+rej('duration: -5', c => { delete c.frames; c.duration = -5; });
+rej('duration: "60"', c => { delete c.frames; c.duration = '60'; });
+rej('frames and duration together', c => { c.frames = 144; c.duration = 60; });
+rej('size: 8000', c => c.size = 8000);
+rej('size: 100', c => c.size = 100);
+rej('size: 1441 — odd, and H.264 cannot encode it', c => c.size = 1441);
+rej('size: 1440.5', c => c.size = 1440.5);
+rej('size: "1440"', c => c.size = '1440');
+rej('span_hours: 0', c => c.span_hours = 0);
+rej('span_hours: 1000', c => c.span_hours = 1000);
+rej('span_hours: "12"', c => c.span_hours = '12');
+rej('quality: pixelperfect', c => c.quality = 'pixelperfect');
+rej('60s at 60fps at 2160px — past the work ceiling',
+    c => { delete c.frames; c.duration = 60; c.fps = 60; c.size = 2160; });
+rej('3600 frames at 2160px — the same ceiling, reached via frames',
+    c => { c.frames = 3600; c.size = 2160; });
 
 console.log('config bounds — must be accepted');
 const acc = (name, mut) => { const c = base(); mut(c); const e = validateConfig(c); t(name, e === null, e); };
 acc('the config the front end sends', () => {});
 acc('frames omitted', c => delete c.frames);
-acc('frames at the maximum', c => c.frames = 288);
+acc('frames at the maximum', c => c.frames = 3600);
 acc('frames at the minimum', c => c.frames = 1);
 acc('fps omitted', c => delete c.fps);
+// The shape the front end now sends: a duration and a frame rate, not a frame count.
+acc('the 60-second lapse', c => { delete c.frames; c.duration = 60; c.fps = 60; c.size = 1440; c.span_hours = 12; c.quality = 'web'; });
+acc('60 seconds at 30fps', c => { delete c.frames; c.duration = 60; c.fps = 30; });
+acc('the six-frame smoke test', c => { c.frames = 6; c.fps = 12; });
+acc('duration and size omitted — the defaults must fit the ceiling', c => { delete c.frames; delete c.fps; });
+acc('master quality', c => c.quality = 'master');
+acc('a half-hour sweep', c => c.span_hours = 0.5);
+acc('span_hours at the maximum', c => c.span_hours = 48);
+acc('size at the minimum', c => c.size = 240);
+acc('a small plate at the full frame count', c => { c.frames = 3600; c.size = 720; });
 acc('a quarter-hour offset', c => c.seed.tz = 5.75);
 acc('latitude exactly -90', c => c.seed.lat = -90);
 acc('longitude exactly 180', c => c.seed.lon = 180);

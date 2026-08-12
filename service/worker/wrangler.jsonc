@@ -34,8 +34,13 @@
   "containers": [
     {
       "class_name": "Renderer",
+      // standard-1 is half a vCPU. A 60-second lapse is 3600 frames, and the
+      // renderer splits them across every core it is given, so half a core turns a
+      // ~4 minute render into something over half an hour. standard-4 is 4 vCPU.
+      // Containers bill active CPU, so the wide instance costs little more in total
+      // for the same work — it finishes it about eight times sooner.
       "image": "../container/Dockerfile",
-      "instance_type": "standard-1",
+      "instance_type": "standard-4",
       "max_instances": 6
     }
   ],
