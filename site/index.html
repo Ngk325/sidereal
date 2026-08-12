@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sidereal Ink</title>
+<meta name="description" content="A generative figure drawn from moments in time and places on earth — and a cipher only those moments can open.">
+<meta property="og:title" content="Sidereal Ink">
+<meta property="og:description" content="A figure drawn from moments in time and places on earth.">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--dark:#141413;--light:#faf9f5;--gray:#b0aea5;--line:#e8e6dc;--orange:#d97757;--blue:#6a9bcc;--green:#788c5d}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Poppins',sans-serif;background:linear-gradient(135deg,var(--light),#f5f3ee);color:var(--dark);min-height:100vh}
+.wrap{max-width:960px;margin:0 auto;padding:32px 20px 64px}
+header{text-align:center;margin-bottom:28px}
+header h1{font-family:'Lora',serif;font-size:34px;font-weight:500}
+header p{color:var(--gray);font-size:15px;margin-top:6px}
+.card{background:rgba(255,255,255,.95);border-radius:14px;box-shadow:0 10px 30px rgba(20,20,19,.08);padding:24px;margin-bottom:20px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:640px){.row{grid-template-columns:1fr}}
+.block h3{font-size:14px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.block h3 .dot{display:flex;align-items:center;gap:8px}
+.block h3 .dot::before{content:'●';font-size:9px;color:var(--orange)}
+.toggle{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:400;color:var(--gray);cursor:pointer}
+.toggle input{width:15px;height:15px;accent-color:var(--orange);cursor:pointer}
+.off{opacity:.4;pointer-events:none}
+.field{margin-bottom:8px;position:relative}
+.field label{display:block;font-size:11px;color:var(--gray);margin-bottom:3px}
+.field input,.field textarea{width:100%;background:var(--light);padding:9px;border-radius:8px;font-family:'Courier New',monospace;font-size:13px;border:1px solid var(--line)}
+.field textarea{resize:vertical;min-height:64px;line-height:1.5}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--orange);background:#fff}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sug{position:absolute;z-index:20;left:0;right:0;top:100%;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 20px rgba(20,20,19,.12);max-height:210px;overflow-y:auto;display:none}
+.sug div{padding:9px 11px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--line)}
+.sug div:last-child{border-bottom:none}
+.sug div:hover{background:var(--light)}
+.sug .co{color:var(--gray);font-size:11px}
+.lst{font-family:'Courier New',monospace;font-size:11px;color:var(--orange);background:var(--light);border-radius:6px;padding:7px 9px;margin-top:8px;line-height:1.5}
+.btn{background:var(--orange);color:#fff;border:none;padding:11px 16px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;width:100%;transition:.15s}
+.btn:hover{background:#c86641;transform:translateY(-1px)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.b{background:var(--blue)}.btn.g{background:var(--green)}
+.btn.big{padding:15px;font-size:16px}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.btns .btn{flex:1;min-width:150px}
+details{border-top:1px solid var(--line);margin-top:18px;padding-top:14px}
+summary{cursor:pointer;font-size:13px;font-weight:500;color:var(--gray);list-style:none;user-select:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:'▸ ';color:var(--orange)}
+details[open] summary::before{content:'▾ '}
+.adv{margin-top:16px}
+.cg{margin-bottom:14px}
+.cg label{display:block;font-size:13px;margin-bottom:6px}
+.sl{display:flex;align-items:center;gap:10px}
+.sl input[type=range]{flex:1;height:4px;background:var(--line);border-radius:2px;-webkit-appearance:none;outline:none}
+.sl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;background:var(--orange);border-radius:50%;cursor:pointer}
+.sl input[type=range]::-moz-range-thumb{width:15px;height:15px;background:var(--orange);border-radius:50%;border:none}
+.vd{font-family:'Courier New',monospace;font-size:11px;color:var(--gray);min-width:52px;text-align:right}
+.cols{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
+.cols div{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--gray)}
+.cols input[type=color]{width:28px;height:28px;border:none;border-radius:6px;background:none;padding:0;cursor:pointer}
+#cc{border-radius:12px;overflow:hidden;background:#0d1424;box-shadow:0 20px 40px rgba(20,20,19,.12);margin-bottom:20px;min-height:120px;display:flex;align-items:center;justify-content:center}
+#cc canvas{display:block;width:100%!important;height:auto!important}
+.placeholder{color:#5b6a80;font-family:'Lora',serif;font-size:17px;padding:90px 24px;text-align:center;line-height:1.6}
+.status{font-size:12px;color:var(--gray);text-align:center;margin-top:10px;min-height:18px}
+.decode h2{font-family:'Lora',serif;font-size:20px;font-weight:500}
+.stamp{font-family:'Courier New',monospace;font-size:11px;color:var(--gray);margin:4px 0 16px;line-height:1.7}
+.verdict{font-family:'Lora',serif;font-size:16px;line-height:1.6;padding:14px 16px;border-left:3px solid var(--orange);background:var(--light);border-radius:0 8px 8px 0;margin-bottom:18px}
+.oracle{font-family:'Lora',serif;font-size:17px;line-height:1.75;padding:18px 20px;background:#141413;color:#e8e6dc;border-radius:10px;margin-bottom:18px}
+.oracle .lbl{font-family:'Courier New',monospace;font-size:10px;letter-spacing:.16em;color:var(--orange);display:block;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td{padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+td.k{width:150px;font-family:'Courier New',monospace;color:var(--orange);white-space:nowrap}
+td.v{line-height:1.5}
+.note{margin-top:14px;font-size:11px;color:var(--gray);line-height:1.5}
+.cipher{font-family:'Courier New',monospace;font-size:13px;background:var(--light);border:1px solid var(--line);border-radius:8px;padding:12px;word-break:break-all;line-height:1.7;min-height:44px}
+.plain{font-family:'Lora',serif;font-size:16px;background:#141413;color:#e8e6dc;border-radius:8px;padding:14px;min-height:46px;line-height:1.5}
+.warn{font-size:11px;color:var(--gray);margin-top:8px;line-height:1.5}
+.hide{display:none}
+.sel{width:100%;background:var(--light);padding:10px;border-radius:8px;font-size:13px;border:1px solid var(--line);font-family:'Poppins',sans-serif}
+.job{border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:10px;background:#fff}
+.job .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+.job .nm{font-size:13px;font-weight:500}
+.job .meta{font-family:'Courier New',monospace;font-size:11px;color:var(--gray);line-height:1.6;margin-top:2px}
+.job .st{font-size:11px;font-weight:500;white-space:nowrap;padding:3px 9px;border-radius:20px;background:var(--light);color:var(--gray)}
+.job .st.run{background:#fdf0eb;color:var(--orange)}
+.job .st.done{background:#eef2e9;color:var(--green)}
+.job .st.err{background:#fbecec;color:#b3524a}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;background:var(--orange);width:0;transition:width .2s ease}
+.job .acts{display:flex;gap:8px;margin-top:10px}
+.job .acts button{flex:1;font-size:12px;padding:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Sidereal Ink</h1>
+  <p>A figure drawn from moments in time and places on earth — and a cipher only those moments can open.</p>
+</header>
+
+<div class="card">
+  <div class="row">
+    <div class="block">
+      <h3><span class="dot">Seed moment</span></h3>
+      <div class="pair">
+        <div class="field"><label>Date</label><input type="date" id="nD" value="1989-03-25"></div>
+        <div class="field"><label>Time</label><input type="time" id="nT" value="03:17"></div>
+      </div>
+      <div class="field">
+        <label>Place</label>
+        <input type="text" id="nP" placeholder="Type a city…" value="Bridgeport, Connecticut" autocomplete="off">
+        <div class="sug" id="nSug"></div>
+      </div>
+      <div class="lst" id="nL">41.1865, −73.1952 · UTC−5</div>
+    </div>
+
+    <div class="block" id="presentBlock">
+      <h3>
+        <span class="dot">Present moment</span>
+        <label class="toggle"><input type="checkbox" id="usePresent" checked> include</label>
+      </h3>
+      <div id="presentFields">
+        <div class="pair">
+          <div class="field"><label>Date</label><input type="date" id="tD"></div>
+          <div class="field"><label>Time</label><input type="time" id="tT"></div>
+        </div>
+        <div class="field">
+          <label>Place</label>
+          <input type="text" id="tP" placeholder="Type a city…" autocomplete="off">
+          <div class="sug" id="tSug"></div>
+        </div>
+        <div class="lst" id="tL">—</div>
+        <button class="btn b" style="margin-top:8px" onclick="useGeo()">Use my location &amp; time</button>
+      </div>
+      <div id="presentOff" class="hide" style="font-size:12px;color:var(--gray);line-height:1.6;padding:18px 4px">
+        Present moment disabled. The figure will be drawn from the seed moment alone — one layer, one rotational order, no interference ring, and the cipher keys on the seed moment only.
+      </div>
+    </div>
+  </div>
+
+  <details>
+    <summary>Advanced — coordinates, seed, parameters, colours</summary>
+    <div class="adv">
+      <div class="row">
+        <div class="block">
+          <h3><span class="dot">Seed coordinates</span></h3>
+          <div class="pair">
+            <div class="field"><label>Latitude</label><input type="number" id="nLat" step="0.0001" value="41.1865"></div>
+            <div class="field"><label>Longitude</label><input type="number" id="nLon" step="0.0001" value="-73.1952"></div>
+          </div>
+          <div class="field"><label>UTC offset</label><input type="number" id="nTZ" step="0.25" value="-5"></div>
+        </div>
+        <div class="block">
+          <h3><span class="dot">Present coordinates</span></h3>
+          <div class="pair">
+            <div class="field"><label>Latitude</label><input type="number" id="tLat" step="0.0001" value="41.1865"></div>
+            <div class="field"><label>Longitude</label><input type="number" id="tLon" step="0.0001" value="-73.1952"></div>
+          </div>
+          <div class="field"><label>UTC offset</label><input type="number" id="tTZ" step="0.25" value="-4"></div>
+        </div>
+      </div>
+      <div class="block" style="margin-top:14px">
+        <h3><span class="dot">Print seed</span></h3>
+        <div class="pair">
+          <div class="field"><input type="number" id="seedIn" value="19890325"></div>
+          <div class="field"><button class="btn g" onclick="randomSeed_()">↻ Random print</button></div>
+        </div>
+      </div>
+      <div class="block" style="margin-top:14px">
+        <h3><span class="dot">Parameters</span></h3>
+        <div class="cg"><label>Ink volume</label><div class="sl"><input type="range" id="inkVolume" min="200" max="1800" step="100" value="800"><span class="vd" id="inkVolume-v">800</span></div></div>
+        <div class="cg"><label>Present weight</label><div class="sl"><input type="range" id="presentWeight" min="0" max="1" step="0.05" value="0.6"><span class="vd" id="presentWeight-v">0.6</span></div></div>
+        <div class="cg"><label>Displacement gain</label><div class="sl"><input type="range" id="dispGain" min="0" max="2" step="0.05" value="1"><span class="vd" id="dispGain-v">1</span></div></div>
+        <div class="cg"><label>Field turbulence</label><div class="sl"><input type="range" id="turbulence" min="0.0008" max="0.006" step="0.0002" value="0.0022"><span class="vd" id="turbulence-v">0.0022</span></div></div>
+        <div class="cg"><label>Ring presence</label><div class="sl"><input type="range" id="rings" min="0" max="1" step="0.05" value="0.55"><span class="vd" id="rings-v">0.55</span></div></div>
+        <div class="cg"><label>Node glow</label><div class="sl"><input type="range" id="nodeGlow" min="0" max="1" step="0.05" value="0.7"><span class="vd" id="nodeGlow-v">0.7</span></div></div>
+        <div class="cols">
+          <div><input type="color" id="c0" value="#0d1424">ground</div>
+          <div><input type="color" id="c1" value="#d9a441">seed</div>
+          <div><input type="color" id="c2" value="#6fb1c7">present</div>
+          <div><input type="color" id="c3" value="#d97757">interference</div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--gray);margin-top:8px">Changing anything here does not redraw. Press <b>Draw figure</b> when you're ready.</p>
+    </div>
+  </details>
+
+  <button class="btn big" style="margin-top:18px" id="drawBtn" onclick="draw_()">Draw figure</button>
+</div>
+
+<div id="cc"><div class="placeholder" id="ph">Set the moments above, then press <b>Draw figure</b>.</div></div>
+
+<div class="card" id="exportCard" style="display:none">
+  <button class="btn g" id="pngBtn" onclick="savePNG()">↓ Download image (PNG)</button>
+
+  <h3 style="font-size:14px;font-weight:600;margin:22px 0 10px;display:flex;align-items:center;gap:8px">
+    <span style="font-size:9px;color:var(--orange)">●</span>Render a 24-hour lapse</h3>
+
+  <div class="row">
+    <div class="field">
+      <label>Where the moment sits in the 24 hours</label>
+      <select id="anchor" class="sel">
+        <option value="calendar">Calendar day — 00:00 to 23:50</option>
+        <option value="start" selected>Moment at start — loops seamlessly</option>
+        <option value="centre">Moment at centre — ±12 hours</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Output format</label>
+      <select id="format" class="sel">
+        <option value="video">Video — WebM, or MP4 where the browser supports it</option>
+        <option value="zip">PNG frame sequence — ZIP, always works</option>
+      </select>
+    </div>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label>Length</label>
+      <select id="frames" class="sel">
+        <option value="6">Test — 6 frames, about 5 seconds</option>
+        <option value="48">Short — 48 frames, 30-minute steps</option>
+        <option value="144" selected>Full — 144 frames, 10-minute steps</option>
+        <option value="288">Fine — 288 frames, 5-minute steps</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>&nbsp;</label>
+      <label class="toggle" style="padding:11px 0"><input type="checkbox" id="markMoment" checked> mark the frame holding the moment</label>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label>Name — used on the frames and in the filename</label>
+      <input type="text" id="nameIn" placeholder="e.g. Bridgeport, first light">
+    </div>
+    <div class="field" id="emailField" style="display:none">
+      <label>Email — where the finished render is sent</label>
+      <input type="email" id="emailIn" placeholder="you@example.com" autocomplete="email">
+    </div>
+  </div>
+  <button class="btn" id="queueBtn" onclick="enqueue()">+ Add to render queue</button>
+  <p id="queueNote" style="font-size:11px;color:var(--gray);margin-top:8px;line-height:1.5">
+    Queued renders process one at a time. You can keep changing the moments and queue more while one runs — each job keeps its own settings. Video capture needs this tab visible; the ZIP format keeps working in the background.
+  </p>
+
+  <div id="queue" style="margin-top:18px"></div>
+  <div id="history"></div>
+  <div class="status" id="status"></div>
+  <pre id="log" style="display:none;font-family:'Courier New',monospace;font-size:11px;line-height:1.6;background:var(--light);border:1px solid var(--line);border-radius:8px;padding:12px;margin-top:12px;max-height:200px;overflow:auto;white-space:pre-wrap"></pre>
+</div>
+
+<div class="card decode" id="decode" style="display:none"></div>
+
+<div class="card">
+  <h3 style="font-size:14px;font-weight:600;margin-bottom:4px">Cipher</h3>
+  <p style="font-size:12px;color:var(--gray);line-height:1.5;margin-bottom:14px">
+    The key is derived from the moments in use — dates, times, latitudes, longitudes. Encrypt a message and it becomes the glyph ring around the figure. Only someone holding the same moments can read it back.
+  </p>
+  <div class="row">
+    <div class="block">
+      <h3><span class="dot">Encrypt</span></h3>
+      <div class="field"><label>Message</label><textarea id="msgIn">WHAT WAS ALREADY TRUE</textarea></div>
+      <button class="btn" onclick="doEncrypt()">Encrypt &amp; draw</button>
+      <div class="field" style="margin-top:12px"><label>Ciphertext — share this</label><div class="cipher" id="cipherOut">—</div></div>
+      <button class="btn g" style="margin-top:8px" onclick="copyCipher()">Copy ciphertext</button>
+    </div>
+    <div class="block">
+      <h3><span class="dot">Decrypt</span></h3>
+      <div class="field"><label>Ciphertext</label><textarea id="cipherIn" placeholder="Paste a ciphertext here"></textarea></div>
+      <button class="btn b" onclick="doDecrypt()">Decrypt with these moments</button>
+      <div class="field" style="margin-top:12px"><label>Plaintext</label><div class="plain" id="plainOut">—</div></div>
+      <div class="warn" id="cipherWarn">Wrong moments produce noise, not an error. If it reads as gibberish, one of the inputs is off.</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <details>
+    <summary>How this is calculated</summary>
+    <div class="adv" style="font-size:13px;line-height:1.6">
+      <p>Each moment's angle is its <b>local sidereal time</b>: Julian day → Greenwich mean sidereal time → plus longitude. Sidereal time gains about four minutes a day on clock time, so the figure drifts even at the same wall-clock hour.</p>
+      <p style="margin-top:10px">Rotational orders, chord counts, spokes, petals and rings come from digit sums of each date. When both moments are in use, the <b>great-circle arc</b> between the two places rotates the present layer out of register, and each latitude shears its own flow field.</p>
+      <p style="margin-top:10px"><b>The cipher</b> is a real, reversible stream cipher. A 32-bit key is hashed from the moments' sidereal angles, coordinates and digit roots, then run through a deterministic generator to produce a keystream that shifts each character. The glyph ring plots the ciphertext: one mark per character, its length encoding the value. It is a puzzle, not security — don't use it for anything that must stay secret.</p>
+      <p style="margin-top:10px"><b>The transmission</b> — the dark panel — is different in kind. It is generated by indexing fixed word banks with the computed values: the same numbers always produce the same words. It is a decoding convention this piece defines, not a message recovered from the sky.</p>
+      <p style="margin-top:10px">Place search uses the Open-Meteo geocoding API. Nothing is stored; nothing leaves your browser except the place name you type.</p>
+    </div>
+  </details>
+</div>
+</div>
+
+<script>
+// ═══ p5 loaded on demand — nothing heavy runs until Draw is pressed
+let p5ready=false;
+function loadP5(){
+  if(p5ready) return Promise.resolve();
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js';
+    s.onload=()=>{p5ready=true;res();}; s.onerror=()=>rej(new Error('p5 failed to load'));
+    document.head.appendChild(s);
+  });
+}
+
+// ═══ SKY MATH ═════════════════════════════════════════════════════
+function jd_(Y,M,D,hUT){if(M<=2){Y--;M+=12;}const A=Math.floor(Y/100),B=2-A+Math.floor(A/4);
+  return Math.floor(365.25*(Y+4716))+Math.floor(30.6001*(M+1))+D+B-1524.5+hUT/24;}
+function lstDeg(Y,M,D,h,m,tz,lon){const jd=jd_(Y,M,D,h+m/60-tz),T=(jd-2451545)/36525;
+  const g=280.46061837+360.98564736629*(jd-2451545)+0.000387933*T*T-T*T*T/38710000;
+  let l=(g+lon)%360;return l<0?l+360:l;}
+function hms(d){const h=d/15,H=Math.floor(h),M=Math.floor((h-H)*60),S=Math.round((((h-H)*60)-M)*60);
+  return `${String(H).padStart(2,'0')}h ${String(M).padStart(2,'0')}m ${String(S).padStart(2,'0')}s`;}
+function arcDeg(a1,o1,a2,o2){const r=Math.PI/180,a=a1*r,b=a2*r,d=(o2-o1)*r;
+  return Math.acos(Math.min(1,Math.max(-1,Math.sin(a)*Math.sin(b)+Math.cos(a)*Math.cos(b)*Math.cos(d))))/r;}
+const dg=n=>String(Math.abs(n)).split('').map(Number), sm=a=>a.reduce((x,y)=>x+y,0);
+function r9(n){while(n>9)n=sm(dg(n));return n;}
+function gcd(a,b){return b?gcd(b,a%b):a;} function lcm(a,b){return a*b/gcd(a,b);}
+function mom(ds,ts,lat,lon,tz){
+  const [Y,M,D]=ds.split('-').map(Number),[h,m]=ts.split(':').map(Number);
+  const tot=sm(dg(Y))+sm(dg(M))+sm(dg(D));
+  return {Y,M,D,h,m,lat,lon,tz,date:new Date(Date.UTC(Y,M-1,D,h,m)-tz*3600000),
+    order:Math.max(2,r9(sm(dg(Y)))),points:tot,spokes:Math.max(5,D),
+    petals:Math.max(3,sm(dg(h))+sm(dg(m))),rings:Math.max(3,r9(D)),root:r9(tot),
+    angle:lstDeg(Y,M,D,h,m,tz,lon)};
+}
+function rel(a,b){
+  const sep=((b.angle-a.angle)%360+360)%360;
+  const As=[[0,'conjunction','the two moments lie over one another'],[60,'sextile','they open a workable gap'],
+    [90,'square','they press against each other'],[120,'trine','they fall into easy proportion'],
+    [180,'opposition','they face each other across the field']];
+  let best=null,orb=999;for(const[d,n,g]of As){const x=Math.min(Math.abs(sep-d),Math.abs(360-sep-d));
+    if(x<orb){orb=x;best={deg:d,name:n,gloss:g};}}
+  const g=gcd(a.order,b.order),l=lcm(a.order,b.order),days=Math.round((b.date-a.date)/864e5);
+  const arc=arcDeg(a.lat,a.lon,b.lat,b.lon);
+  return{sep,aspect:best,orb,exact:orb<=8,resonance:g,beat:l,days,
+    dayMod:((days%a.order)+a.order)%a.order,weekMod:((days%7)+7)%7,
+    rootPair:r9(a.root+b.root),locked:g>1,arc,km:arc*111.195};
+}
+// single-moment stand-in so every downstream reader keeps working
+function selfRel(a){
+  return{sep:0,aspect:{deg:0,name:'conjunction',gloss:'the moment lies only over itself'},orb:0,exact:true,
+    resonance:a.order,beat:a.order,days:0,dayMod:0,weekMod:0,rootPair:a.root,locked:true,arc:0,km:0};
+}
+
+// ═══ CIPHER ═══════════════════════════════════════════════════════
+const CHARSET="ABCDEFGHIJKLMNOPQRSTUVWXYZ .,'?";
+const B32="abcdefghijklmnopqrstuvwxyz234567";
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+function keyFrom(a,b){
+  const parts=b?[Math.round(a.angle*1e4),Math.round(b.angle*1e4),Math.round(a.lat*1e4),Math.round(a.lon*1e4),
+                 Math.round(b.lat*1e4),Math.round(b.lon*1e4),a.points,b.points,a.order,b.order,a.root,b.root]
+               :[Math.round(a.angle*1e4),Math.round(a.lat*1e4),Math.round(a.lon*1e4),a.points,a.order,a.root];
+  let h=0x811c9dc5;
+  for(const p of parts){const s=String(p);
+    for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}h^=0x9e3779b9;}
+  return h>>>0;
+}
+function stream(a,b,n){const r=mulberry32(keyFrom(a,b)),o=[];for(let i=0;i<n;i++)o.push(Math.floor(r()*32));return o;}
+function encrypt(t,a,b){const s=t.toUpperCase().split('').filter(c=>CHARSET.includes(c)),k=stream(a,b,s.length);
+  return s.map((c,i)=>B32[(CHARSET.indexOf(c)+k[i])%32]).join('');}
+function decrypt(ct,a,b){const s=ct.toLowerCase().split('').filter(c=>B32.includes(c)),k=stream(a,b,s.length);
+  return s.map((c,i)=>CHARSET[((B32.indexOf(c)-k[i])%32+32)%32]).join('');}
+const grouped=s=>(s.match(/.{1,5}/g)||[]).join(' ');
+
+// ═══ PLACE SEARCH ═════════════════════════════════════════════════
+function offsetForZone(tzName,date){
+  try{
+    const f=new Intl.DateTimeFormat('en-US',{timeZone:tzName,timeZoneName:'longOffset'});
+    const p=f.formatToParts(date).find(x=>x.type==='timeZoneName').value; // e.g. GMT-4 or GMT-04:30
+    const m=p.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
+    if(!m) return 0;
+    return (m[1]==='-'?-1:1)*(parseInt(m[2])+(m[3]?parseInt(m[3])/60:0));
+  }catch(e){ return 0; }
+}
+function wireSearch(inputId,sugId,latId,lonId,tzId,dateId,lstId){
+  const inp=document.getElementById(inputId), box=document.getElementById(sugId);
+  let t=null;
+  inp.addEventListener('input',()=>{
+    clearTimeout(t);
+    const q=inp.value.trim();
+    if(q.length<2){box.style.display='none';return;}
+    t=setTimeout(async()=>{
+      try{
+        const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=6&language=en&format=json&name='+encodeURIComponent(q));
+        const j=await r.json();
+        if(!j.results||!j.results.length){box.style.display='none';return;}
+        box.innerHTML=j.results.map((p,i)=>
+          `<div data-i="${i}"><b>${p.name}</b> <span class="co">${[p.admin1,p.country].filter(Boolean).join(', ')}</span></div>`).join('');
+        box.style.display='block';
+        box.querySelectorAll('div[data-i]').forEach(el=>{
+          el.onclick=()=>{
+            const p=j.results[el.dataset.i];
+            inp.value=[p.name,p.admin1,p.country].filter(Boolean).join(', ');
+            document.getElementById(latId).value=p.latitude.toFixed(4);
+            document.getElementById(lonId).value=p.longitude.toFixed(4);
+            const dv=document.getElementById(dateId).value||'2000-01-01';
+            const tz=offsetForZone(p.timezone,new Date(dv+'T12:00:00Z'));
+            document.getElementById(tzId).value=tz;
+            document.getElementById(lstId).textContent=
+              `${p.latitude.toFixed(4)}, ${p.longitude.toFixed(4)} · UTC${tz>=0?'+':'−'}${Math.abs(tz)} · ${p.timezone}`;
+            box.style.display='none';
+          };
+        });
+      }catch(e){ box.style.display='none'; }
+    },300);
+  });
+  document.addEventListener('click',e=>{ if(!box.contains(e.target)&&e.target!==inp) box.style.display='none'; });
+}
+
+// ═══ STATE ════════════════════════════════════════════════════════
+let P={seed:19890325,inkVolume:800,presentWeight:.6,dispGain:1,turbulence:.0022,
+       rings:.55,nodeGlow:.7,pal:['#0d1424','#d9a441','#6fb1c7','#d97757']};
+const S=1200;let R,cx,cy,A,B,REL,recording=false,CIPHER="",sketchReady=false,dual=true;
+const F=id=>parseFloat(document.getElementById(id).value)||0;
+const $=id=>document.getElementById(id);
+// `status` alone resolves to window.status (a legacy string), not this element,
+// so every message written through it was silently discarded. Hold a real reference.
+const statusEl=document.getElementById('status');
+
+window.addEventListener('DOMContentLoaded',()=>{
+  const n=new Date();
+  tD.value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
+  tT.value=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  tTZ.value=(-n.getTimezoneOffset()/60);
+  tL.textContent=`${tLat.value}, ${tLon.value} · UTC${tTZ.value>=0?'+':'−'}${Math.abs(tTZ.value)}`;
+  wireSearch('nP','nSug','nLat','nLon','nTZ','nD','nL');
+  wireSearch('tP','tSug','tLat','tLon','tTZ','tD','tL');
+  ['inkVolume','presentWeight','dispGain','turbulence','rings','nodeGlow'].forEach(k=>{
+    const el=$(k); el.oninput=()=>{P[k]=parseFloat(el.value);$(k+'-v').textContent=el.value;};});
+  ['c0','c1','c2','c3'].forEach((id,i)=>$(id).onchange=e=>{P.pal[i]=e.target.value;});
+  seedIn.onchange=()=>{const v=parseInt(seedIn.value);if(v>0)P.seed=v;};
+  usePresent.onchange=()=>{
+    dual=usePresent.checked;
+    presentFields.classList.toggle('off',!dual);
+    presentOff.classList.toggle('hide',dual);
+  };
+  probeService();          // decide once, up front, so the card shows the right fields
+});
+
+function readMoments(){
+  dual=usePresent.checked;
+  A=mom(nD.value,nT.value,F('nLat'),F('nLon'),F('nTZ'));
+  if(dual){ B=mom(tD.value,tT.value,F('tLat'),F('tLon'),F('tTZ')); REL=rel(A,B); }
+  else    { B=null; REL=selfRel(A); }
+  CIPHER=encrypt(msgIn.value,A,B);
+  cipherOut.textContent=CIPHER?grouped(CIPHER):'—';
+}
+
+// the only entry point that renders
+async function draw_(){
+  drawBtn.disabled=true; drawBtn.textContent='Drawing…';
+  try{
+    await loadP5();
+    readMoments();
+    if(!sketchReady){
+      await new Promise(res=>{ VIEW.onReady=res; new p5(makeSketch(VIEW,viewCtx,'cc'),'cc'); });
+      sketchReady=true;
+    } else { VIEW.render(); }
+    ph && ph.remove();
+    exportCard.style.display='block'; decode.style.display='block';
+    renderDecode();
+  }catch(e){ statusEl.textContent='Could not load the renderer: '+e.message; }
+  drawBtn.disabled=false; drawBtn.textContent='Draw figure';
+}
+function doEncrypt(){ readMoments(); if(sketchReady){VIEW.render();renderDecode();}
+  statusEl.textContent=CIPHER?'Encrypted — '+CIPHER.length+' glyphs in the ring.':''; }
+function doDecrypt(){
+  readMoments();
+  const out=decrypt(cipherIn.value,A,B);
+  plainOut.textContent=out||'—';
+  const leg=out.length?(out.match(/[A-Z ]/g)||[]).length/out.length:0;
+  cipherWarn.textContent=out.length===0?'Paste a ciphertext above.'
+    :leg>.9?'Reads cleanly — these are the right moments.'
+    :'Reads as noise. One of the inputs is off.';
+}
+function copyCipher(){navigator.clipboard.writeText(CIPHER).then(()=>statusEl.textContent='Ciphertext copied.');}
+function randomSeed_(){P.seed=Math.floor(Math.random()*999999)+1;seedIn.value=P.seed;}
+function useGeo(){
+  if(!navigator.geolocation){statusEl.textContent='Geolocation unavailable — type a place instead.';return;}
+  statusEl.textContent='Requesting location…';
+  navigator.geolocation.getCurrentPosition(p=>{
+    tLat.value=p.coords.latitude.toFixed(4);tLon.value=p.coords.longitude.toFixed(4);
+    const n=new Date();
+    tD.value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
+    tT.value=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+    tTZ.value=(-n.getTimezoneOffset()/60);
+    tP.value='(current location)';
+    tL.textContent=`${tLat.value}, ${tLon.value} · UTC${tTZ.value>=0?'+':'−'}${Math.abs(tTZ.value)}`;
+    statusEl.textContent='Located. Press Draw figure.';
+  },e=>{statusEl.textContent='Location unavailable ('+e.message+') — type a place instead.';},{timeout:10000});
+}
+
+// ═══ SKETCH FACTORY ═══════════════════════════════════════════════
+// One factory, many instances. Each instance reads its own context object,
+// so a background job never touches the figure on screen.
+function makeSketch(api,getCtx,parentEl){
+  return p=>{
+    let R,cx,cy;
+    const hexA=a=>Math.round(p.constrain(a,0,255)).toString(16).padStart(2,'0');
+
+    p.setup=()=>{
+      const c=p.createCanvas(S,S); c.parent(parentEl);
+      R=S*.40; cx=cy=S/2; p.noLoop();
+      api.canvas=c.elt; api.ready=true;
+      api.render=(steps,lite)=>render(steps,lite);
+      api.flash=()=>flash();
+      api.stamp=(lines)=>stamp(lines);
+      if(api.onReady) api.onReady();
+      render();
+    };
+
+    const off_=(C)=>p.radians(C.REL.arc)*C.P.dispGain;
+
+    function render(steps,lite){
+      const C=getCtx(); if(!C||!C.A) return;
+      steps=steps||150;
+      p.randomSeed(C.P.seed);p.noiseSeed(C.P.seed);
+      p.background(C.P.pal[0]);grain(C,lite);
+      layer(C,C.A,1,1,0);
+      if(C.B) layer(C,C.B,2,C.P.presentWeight,off_(C));
+      spokes(C,C.A,1); if(C.B) nodes(C); glyphRing(C);
+      inkPass(C,C.A,1,1,0,1,steps);
+      if(C.B) inkPass(C,C.B,2,C.P.presentWeight,off_(C),-1,steps);
+      centreMark(C);
+    }
+    function grain(C,lite){
+      p.noStroke();const b=p.color(C.P.pal[0]);
+      const N=lite?2500:11000;
+      for(let i=0;i<N;i++){const x=p.random(S),y=p.random(S),d=p.dist(x,y,cx,cy)/(S*.7),v=12*(1-d)+p.random(-6,6);
+        p.fill(p.red(b)+v,p.green(b)+v,p.blue(b)+v,60);p.rect(x,y,1.5,1.5);}
+      for(let r=R*1.5;r>0;r-=6){p.noFill();p.stroke(255,238,205,p.map(r,0,R*1.5,7,0));p.strokeWeight(6);p.ellipse(cx,cy,r*2);}
+    }
+    function layer(C,M,ci,amt,ex){
+      const CL=C.P.pal,o=p.radians(M.angle)+ex;p.noFill();
+      for(let k=0;k<M.rings;k++){
+        const t=(k+1)/M.rings,rad=R*(.20+.80*Math.pow(t,.85)),rot=o*(k+1)/M.rings;
+        for(let sI=0;sI<M.spokes;sI++){
+          if(p.random()>C.P.rings*.85+.12)continue;
+          const a0=rot+p.TWO_PI*sI/M.spokes,a1=a0+p.TWO_PI/M.spokes*p.random(.35,.92);
+          p.stroke(p.color(CL[ci]+hexA(p.random(30,115)*amt)));p.strokeWeight(p.random(.6,2));
+          p.beginShape();for(let a=a0;a<=a1;a+=.014){const jt=(p.noise(Math.cos(a)*2+k,Math.sin(a)*2+k)-.5)*R*.012;
+            p.vertex(cx+Math.cos(a)*(rad+jt),cy+Math.sin(a)*(rad+jt));}p.endShape();}}
+      const N=M.points,pts=[];
+      for(let i=0;i<N;i++){const a=o+p.TWO_PI*i/N;pts.push([cx+Math.cos(a)*R,cy+Math.sin(a)*R]);}
+      [M.petals,2,M.order].forEach((st,si)=>{
+        p.stroke(p.color(CL[ci]+hexA((si?30:66)*amt)));p.strokeWeight(si?.6:.9);
+        for(let i=0;i<N;i++){const jj=(i*st)%N;p.line(pts[i][0],pts[i][1],pts[jj][0],pts[jj][1]);}});
+      p.noStroke();pts.forEach(q=>{p.fill(p.color(CL[ci]+hexA(160*amt)));p.circle(q[0],q[1],2.2);});
+    }
+    function spokes(C,M,ci){
+      const o=p.radians(M.angle);
+      for(let sI=0;sI<M.spokes;sI++){const a=o+p.TWO_PI*sI/M.spokes,k=sI%5===0;
+        p.stroke(p.color(C.P.pal[ci]+hexA(k?58:22)));p.strokeWeight(k?.9:.5);
+        p.line(cx+Math.cos(a)*R*(k?.06:.62),cy+Math.sin(a)*R*(k?.06:.62),cx+Math.cos(a)*R*(k?1.02:.96),cy+Math.sin(a)*R*(k?1.02:.96));}
+    }
+    function nodes(C){
+      const n=Math.min(C.REL.beat,144),rr=R*(.30+.55*(C.REL.resonance/Math.max(C.A.order,C.B.order)));
+      const o=p.radians((C.A.angle+C.B.angle)/2)+off_(C)/2,c=p.color(C.P.pal[3]);p.noStroke();
+      for(let i=0;i<n;i++){const a=o+p.TWO_PI*i/n,x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr;
+        for(let g=6;g>0;g--){p.fill(p.red(c),p.green(c),p.blue(c),12*C.P.nodeGlow);p.circle(x,y,g*2.4);}
+        p.fill(p.red(c),p.green(c),p.blue(c),200*C.P.nodeGlow);p.circle(x,y,2.2);}
+    }
+    function glyphRing(C){
+      if(!C.CIPHER)return;
+      const n=C.CIPHER.length,base=R*1.005,o=p.radians(C.A.angle),c=p.color(C.P.pal[1]),e=p.color(C.P.pal[3]);
+      for(let i=0;i<n;i++){
+        const v=B32.indexOf(C.CIPHER[i]),a=o+p.TWO_PI*i/n,r1=base+R*.012+(v/31)*R*.085;
+        p.stroke(p.red(c),p.green(c),p.blue(c),160);p.strokeWeight(1.6);
+        p.line(cx+Math.cos(a)*base,cy+Math.sin(a)*base,cx+Math.cos(a)*r1,cy+Math.sin(a)*r1);
+        p.noStroke();p.fill(p.red(e),p.green(e),p.blue(e),190);p.circle(cx+Math.cos(a)*r1,cy+Math.sin(a)*r1,2.6);}
+      p.noFill();p.stroke(p.red(c),p.green(c),p.blue(c),40);p.strokeWeight(.8);p.circle(cx,cy,base*2);
+    }
+    function inkPass(C,M,ci,amt,ex,dir,steps){
+      const c=p.color(C.P.pal[ci]),tilt=p.radians(M.lat),n=Math.floor(C.P.inkVolume*(ci===1?1:Math.max(.15,amt))),ws=[];
+      for(let i=0;i<n;i++){
+        const a=p.radians(M.angle)+ex+p.TWO_PI*Math.floor(p.random(M.order))/M.order+p.randomGaussian()*.10;
+        const rr=R*p.random(.08,1),x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr;
+        ws.push({x,y,px:x,py:y,alive:true,w:p.random(.35,1.4)});}
+      const alpha=ci===1?24:22*(.4+amt);
+      p.push();p.translate(cx,cy);
+      for(let st=0;st<steps;st++){
+        for(const w of ws){
+          if(!w.alive)continue;
+          const nv=p.noise(w.x*C.P.turbulence,w.y*C.P.turbulence,C.P.seed*1e-4),rad=Math.atan2(w.y-cy,w.x-cx);
+          const ang=nv*p.TWO_PI*2+dir*(rad+p.HALF_PI)+Math.sin(rad*M.order)*.35+tilt*.25;
+          w.px=w.x;w.py=w.y;w.x+=Math.cos(ang)*1.35;w.y+=Math.sin(ang)*1.35;
+          if(p.dist(w.x,w.y,cx,cy)>R*1.06){w.alive=false;continue;}
+          for(let k=0;k<M.order;k++){
+            const th=p.TWO_PI*k/M.order,C_=Math.cos(th),Sn=Math.sin(th);
+            const x0=(w.px-cx)*C_-(w.py-cy)*Sn, y0=(w.px-cx)*Sn+(w.py-cy)*C_;
+            const x1=(w.x-cx)*C_-(w.y-cy)*Sn,   y1=(w.x-cx)*Sn+(w.y-cy)*C_;
+            p.stroke(p.red(c),p.green(c),p.blue(c),alpha);p.strokeWeight(w.w);p.line(x0,y0,x1,y1);}
+        }}
+      p.pop();
+    }
+    function centreMark(C){
+      p.noFill();for(let i=1;i<=3;i++){p.stroke(p.color(C.P.pal[1]+hexA(150-i*30)));p.strokeWeight(1.2);p.circle(cx,cy,R*.05*i);}
+      p.noStroke();p.fill(p.color(C.P.pal[3]));p.circle(cx,cy,5);
+      const b=p.color(C.P.pal[0]);p.noFill();
+      for(let r=S*.75;r<S*1.5;r+=4){p.stroke(p.red(b),p.green(b),p.blue(b),9);p.strokeWeight(5);p.ellipse(cx,cy,r);}
+    }
+    function flash(){
+      const C=getCtx(),c=p.color(C.P.pal[3]);p.noFill();
+      for(let i=0;i<9;i++){p.stroke(p.red(c),p.green(c),p.blue(c),46-i*5);p.strokeWeight(2.6);
+        p.circle(cx,cy,R*(0.12+i*0.21));}
+    }
+    // corner plate: title top-left, moment details bottom-left
+    function stamp(L){
+      p.push();
+      p.textFont('Courier New');
+      if(L.title){
+        p.noStroke();p.fill(232,230,220,235);p.textSize(21);p.textAlign(p.LEFT,p.TOP);
+        p.text(L.title,30,26);
+        if(L.subtitle){p.fill(176,174,165,190);p.textSize(12);p.text(L.subtitle,30,54);}
+      }
+      p.textAlign(p.LEFT,p.BOTTOM);p.textSize(13);
+      const lines=(L.lines||[]);
+      lines.forEach((ln,i)=>{
+        p.fill(200,196,185, i===0?225:170);
+        p.text(ln, 30, S-26-(lines.length-1-i)*19);
+      });
+      if(L.right){p.textAlign(p.RIGHT,p.BOTTOM);p.fill(176,174,165,170);p.text(L.right,S-30,S-26);}
+      p.pop();
+    }
+  };
+}
+
+// ── the on-screen instance ────────────────────────────────────────
+const VIEW={ready:false};
+function viewCtx(){ return {A,B,REL,CIPHER,P}; }
+window._render=(...a)=>VIEW.ready&&VIEW.render(...a);
+
+// ── an offscreen instance, one per running job ────────────────────
+function spawnRenderer(){
+  const host=document.createElement('div');
+  host.style.cssText='position:absolute;left:-99999px;top:0;width:'+S+'px;height:'+S+'px';
+  document.body.appendChild(host);
+  const api={ready:false,host,ctx:null};
+  api.destroy=()=>{ try{api.p5.remove();}catch(e){} host.remove(); };
+  return new Promise(res=>{
+    api.onReady=()=>res(api);
+    api.p5=new p5(makeSketch(api,()=>api.ctx,host),host);
+  });
+}
+
+// ═══ EXPORT HELPERS ═══════════════════════════════════════════════
+function dl(blob,name){
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=name; a.style.display='none';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},2000);
+}
+function savePNG(){
+  const c=VIEW.canvas;
+  if(!c){statusEl.textContent='Draw the figure first.';return;}
+  c.toBlob(b=>{ if(!b){statusEl.textContent='Export failed — try again.';return;}
+    dl(b,slug(nameIn.value||'sidereal-ink')+'-'+P.seed+'.png');
+    statusEl.textContent='Image downloaded ('+Math.round(b.size/1024)+' KB).';
+  },'image/png');
+}
+function LOG(msg){
+  const el=document.getElementById('log');
+  el.style.display='block';
+  el.textContent+=`[${new Date().toLocaleTimeString()}] ${msg}\n`;
+  el.scrollTop=el.scrollHeight;
+}
+function pad(n){return String(n).padStart(2,'0');}
+const nextPaint=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+const slug=t=>(t||'').trim().replace(/[^\w\s-]/g,'').replace(/\s+/g,'-').toLowerCase().slice(0,48)||'sidereal-ink';
+function loadJSZip(){
+  if(window.JSZip) return Promise.resolve();
+  return new Promise((res,rej)=>{
+    const sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    sc.onload=res; sc.onerror=()=>rej(new Error('could not load the ZIP library'));
+    document.head.appendChild(sc);
+  });
+}
+
+// ═══ RENDER SERVICE ═══════════════════════════════════════════════
+// The hosted service renders lapses server-side and emails a link. It may not
+// be there: the same file also runs from a static host or from file://, where
+// the only path that works is the in-browser renderer below. Probe once, cache
+// the answer, and never let the absence of the service surface as an error.
+const SERVICE={probed:false,ok:false,promise:null};
+
+function probeService(){
+  if(SERVICE.probed) return Promise.resolve(SERVICE.ok);
+  if(SERVICE.promise) return SERVICE.promise;
+  SERVICE.promise=(async()=>{
+    if(location.protocol==='file:') return false;
+    try{
+      // An empty body is rejected by the Worker with a JSON 400 before any work
+      // is done or any quota spent. A static host has no such route at all.
+      const r=await fetch('/api/render',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
+      const ct=r.headers.get('content-type')||'';
+      return r.status<500 && r.status!==404 && r.status!==405 && ct.includes('json');
+    }catch(e){ return false; }
+  })().then(ok=>{
+    SERVICE.ok=ok; SERVICE.probed=true; applyRenderMode();
+    LOG(ok?'render service found — lapses will render on the server'
+          :'no render service — rendering in this browser');
+    return ok;
+  });
+  return SERVICE.promise;
+}
+
+function applyRenderMode(){
+  const on=SERVICE.ok;
+  document.getElementById('emailField').style.display=on?'':'none';
+  document.getElementById('queueNote').textContent=on
+    ? 'Renders run on the server. Close the tab if you like — the link arrives by email when it finishes, and the job card below keeps updating while this page is open. PNG frame sequences still render in this browser.'
+    : 'Queued renders process one at a time in this browser. You can keep changing the moments and queue more while one runs — each job keeps its own settings. Video capture needs this tab visible; the ZIP format keeps working in the background.';
+}
+
+// The browser's snapshot() is not the server's schema. Map, don't reshape the
+// server: it expects date/time/lat/lon/tz objects and a flat print_seed.
+function toServiceConfig(c){
+  const cfg={
+    name:c.name,
+    place_label:placeLabel(c),
+    seed:{date:c.seed.d,time:c.seed.t,lat:c.seed.lat,lon:c.seed.lon,tz:c.seed.tz},
+    anchor:c.anchor,
+    frames:c.frames,
+    fps:12,
+    print_seed:c.P.seed,
+    message:c.msg,
+    mark:c.mark
+  };
+  if(c.dual) cfg.present={date:c.pres.d,time:c.pres.t,lat:c.pres.lat,lon:c.pres.lon,tz:c.pres.tz};
+  return cfg;                       // `present` omitted entirely for a single-moment sweep
+}
+function placeLabel(c){
+  const two=s=>(s||'').split(',').slice(0,2).join(',').trim();
+  const a=two(c.seed.place), b=c.dual?two(c.pres.place):'';
+  return b&&b!==a?`${a}  →  ${b}`:a;
+}
+
+async function submitRemote(job){
+  const email=(document.getElementById('emailIn').value||'').trim();
+  const r=await fetch('/api/render',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({email,config:toServiceConfig(job.cfg)})
+  });
+  let body={}; try{ body=await r.json(); }catch(e){}
+  if(!r.ok) throw new Error(body.error||`the service refused the job (${r.status})`);
+  if(!body.jobId) throw new Error('the service accepted the job but returned no id');
+  job.remoteId=body.jobId;
+  job.note='queued on the server';
+  renderQueue();
+  pollRemote(job);
+}
+
+const REMOTE_LIVE={queued:1,rendering:1,uploading:1};
+function pollRemote(job){
+  const tick=async()=>{
+    if(job.dropped) return;
+    let s;
+    try{
+      const r=await fetch('/api/job/'+job.remoteId,{cache:'no-store'});
+      if(r.status===404) throw new Error('the server no longer has this job');
+      s=await r.json();
+    }catch(e){
+      job.misses=(job.misses||0)+1;
+      // A dropped connection is not a failed render. Keep trying for a while.
+      if(job.misses>=10){ finishRemote(job,false,'lost contact with the server — '+e.message); return; }
+      job.note='waiting for the server…'; renderQueue();
+      return setTimeout(tick,3000);
+    }
+    job.misses=0;
+    if(s.status==='done'){
+      job.link='/f/'+job.remoteId;
+      finishRemote(job,true,
+        (s.bytes?`${(s.bytes/1048576).toFixed(1)} MB · `:'')+'ready to download — the link is also in your email');
+      return;
+    }
+    if(s.status==='failed'){ finishRemote(job,false,s.error||'the render failed on the server'); return; }
+    if(REMOTE_LIVE[s.status]){
+      job.status='running';
+      if(s.total){ job.pct=Math.round((s.done||0)/s.total*100); }
+      job.note=s.status==='queued'?'queued on the server — waiting for a renderer'
+              :s.status==='uploading'?'uploading the video…'
+              :`frame ${s.done||0} of ${s.total||job.cfg.frames} on the server`;
+      renderQueue();
+      return setTimeout(tick,3000);
+    }
+    finishRemote(job,false,'unexpected status from the server: '+s.status);
+  };
+  setTimeout(tick,1500);
+}
+
+function finishRemote(job,ok,note){
+  job.status=ok?'done':'failed';
+  job.pct=100; job.note=note;
+  HISTORY.unshift({...job, ok, at:new Date().toLocaleString()});
+  renderQueue();
+  LOG(`"${job.cfg.name}" ${ok?'complete':'failed'} — ${note}`+(ok&&job.link?`  ${location.origin}${job.link}`:''));
+  statusEl.textContent=ok?'Render finished on the server.':'Render failed.';
+}
+
+// ═══ QUEUE ════════════════════════════════════════════════════════
+let QUEUE=[], HISTORY=[], jobSeq=0, activeJobs=0;
+const MAX_CONCURRENT=2;
+
+function snapshot(){
+  const dual=usePresent.checked;
+  return {
+    name:(nameIn.value||'').trim()||autoName(),
+    dual,
+    seed:{d:nD.value,t:nT.value,lat:F('nLat'),lon:F('nLon'),tz:F('nTZ'),place:nP.value},
+    pres:{d:tD.value,t:tT.value,lat:F('tLat'),lon:F('tLon'),tz:F('tTZ'),place:tP.value},
+    anchor:document.getElementById('anchor').value,
+    mark:document.getElementById('markMoment').checked,
+    frames:parseInt(document.getElementById('frames').value),
+    format:document.getElementById('format').value,
+    msg:msgIn.value,
+    P:JSON.parse(JSON.stringify(P))
+  };
+}
+function autoName(){
+  return (nP.value.split(',')[0]||'Sidereal Ink').trim()+' '+nD.value;
+}
+function metaLine(c){
+  const anc={calendar:'calendar day',start:'moment at start',centre:'moment at centre'}[c.anchor];
+  return `${c.frames} frames · ${Math.round(1440/c.frames)}-min steps · ${anc} · ${c.format==='zip'?'PNG ZIP':'video'} · print #${c.P.seed}`;
+}
+function momentsLine(c){
+  return c.dual ? `seed ${c.seed.d} ${c.seed.t} → present ${c.pres.d} ${c.pres.t}`
+                : `seed ${c.seed.d} ${c.seed.t} · single moment`;
+}
+async function enqueue(){
+  if(!VIEW.ready){statusEl.textContent='Press Draw figure first.';return;}
+  const cfg=snapshot();
+  const btn=document.getElementById('queueBtn');
+  btn.disabled=true;
+  try{
+    // A PNG frame sequence is a browser-only format — the service emits mp4 —
+    // so ZIP jobs stay local even when the server is available.
+    const remote = cfg.format!=='zip' && await probeService();
+    if(remote){
+      const email=(document.getElementById('emailIn').value||'').trim();
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+        statusEl.textContent='Add an email address — the server sends the finished render there.';
+        document.getElementById('emailIn').focus();
+        return;
+      }
+    }
+    const job={id:++jobSeq,cfg,status:'queued',pct:0,
+               note:remote?'submitting to the server…':'waiting for a slot',
+               blob:null,cancel:false,remote};
+    QUEUE.push(job);
+    renderQueue();
+    LOG('queued "'+cfg.name+'" — '+metaLine(cfg)+(remote?' · on the server':' · in this browser'));
+    if(remote){
+      submitRemote(job).catch(err=>{
+        job.status='failed'; job.pct=100; job.note=err.message; job.canRetryLocal=true;
+        renderQueue();
+        LOG('"'+cfg.name+'" was not accepted by the server — '+err.message);
+      });
+    } else {
+      pump();
+    }
+  } finally {
+    btn.disabled=false;
+  }
+}
+// A refused server job is not a dead end: the browser renderer is still here.
+function retryLocal(id){
+  const j=QUEUE.find(x=>x.id===id); if(!j) return;
+  j.remote=false; j.canRetryLocal=false; j.status='queued'; j.pct=0;
+  j.note='waiting for a slot — rendering in this browser';
+  renderQueue(); LOG('"'+j.cfg.name+'" moved to the browser renderer');
+  pump();
+}
+function removeJob(id){
+  const j=QUEUE.find(x=>x.id===id); if(!j) return;
+  if(j.remote&&j.status==='running'){
+    // There is no cancel in the API. Be honest: we stop watching, the server carries on.
+    j.dropped=true;
+    QUEUE=QUEUE.filter(x=>x.id!==id);
+    LOG('stopped watching "'+j.cfg.name+'" — the server carries on, and the email still arrives');
+  }
+  else if(j.status==='running'){ j.cancel=true; j.note='cancelling…'; }
+  else { QUEUE=QUEUE.filter(x=>x.id!==id); }
+  renderQueue();
+}
+function saveJob(id){
+  const j=QUEUE.concat(HISTORY).find(x=>x.id===id);
+  if(j&&j.blob) dl(j.blob,j.filename);
+}
+function clearDone(){ QUEUE=QUEUE.filter(j=>j.status==='queued'||j.status==='running'); renderQueue(); }
+
+function renderQueue(){
+  const box=document.getElementById('queue');
+  if(!QUEUE.length){box.innerHTML='';renderHistory();return;}
+  box.innerHTML=QUEUE.map(j=>{
+    const cls={queued:'',running:'run',done:'done',failed:'err',cancelled:'err'}[j.status]||'';
+    const label={queued:'queued',running:'rendering',done:'ready',failed:'failed',cancelled:'cancelled'}[j.status];
+    return `<div class="job">
+      <div class="top">
+        <div><div class="nm">${j.cfg.name}</div>
+        <div class="meta">${momentsLine(j.cfg)}<br>${metaLine(j.cfg)}${j.note?'<br>'+j.note:''}</div></div>
+        <div class="st ${cls}">${label}</div>
+      </div>
+      <div class="bar"><i style="width:${j.pct}%"></i></div>
+      <div class="acts">
+        ${j.link?`<a class="btn g" href="${j.link}" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none">↓ Download the video</a>`:''}
+        ${j.status==='done'&&j.blob?`<button class="btn g" onclick="saveJob(${j.id})">↓ Download again</button>`:''}
+        ${j.canRetryLocal?`<button class="btn g" onclick="retryLocal(${j.id})">Render in this browser instead</button>`:''}
+        <button class="btn b" onclick="removeJob(${j.id})">${j.status==='running'?(j.remote?'Stop watching':'Cancel'):'Remove'}</button>
+      </div></div>`;
+  }).join('')+(QUEUE.some(j=>j.status==='done'||j.status==='failed'||j.status==='cancelled')
+      ?'<button class="btn b" onclick="clearDone()" style="margin-top:4px">Clear finished</button>':'');
+  renderHistory();
+}
+function renderHistory(){
+  const box=document.getElementById('history');
+  if(!HISTORY.length){box.innerHTML='';return;}
+  box.innerHTML='<h3 style="font-size:14px;font-weight:600;margin:24px 0 10px;display:flex;align-items:center;gap:8px"><span style="font-size:9px;color:var(--orange)">●</span>Render log</h3>'
+    + HISTORY.map(j=>`<div class="job">
+        <div class="top"><div><div class="nm">${j.cfg.name}</div>
+          <div class="meta">${momentsLine(j.cfg)}<br>${metaLine(j.cfg)}<br>${j.note}</div></div>
+          <div class="st ${j.ok?'done':'err'}">${j.ok?'complete':'failed'}</div></div>
+        ${j.blob?`<div class="acts"><button class="btn g" onclick="saveJob(${j.id})">↓ ${j.filename}</button></div>`
+         :j.link?`<div class="acts"><a class="btn g" href="${j.link}" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none">↓ ${slug(j.cfg.name)}.mp4</a></div>`:''}
+      </div>`).join('');
+}
+
+async function pump(){
+  while(activeJobs<MAX_CONCURRENT){
+    const job=QUEUE.find(j=>j.status==='queued'&&!j.remote);   // server jobs drive themselves
+    if(!job) return;
+    job.status='running'; job.pct=0; job.note='starting renderer…'; renderQueue();
+    activeJobs++;
+    runJob(job).then(()=>{
+      if(job.cancel){ job.status='cancelled'; job.note='stopped before finishing'; }
+      else job.status='done';
+    }).catch(err=>{
+      job.status='failed'; job.note=err.message; LOG('"'+job.cfg.name+'" failed: '+err.message);
+    }).finally(()=>{
+      activeJobs--; job.pct=100;
+      HISTORY.unshift({...job, ok:job.status==='done', at:new Date().toLocaleString()});
+      renderQueue(); pump();
+      if(!activeJobs && !QUEUE.some(j=>j.status==='queued'||j.status==='running')) statusEl.textContent='Queue empty.';
+    });
+  }
+}
+
+function jobStart(c){
+  const src=c.dual?c.pres:c.seed;
+  const [Y,M,D]=src.d.split('-').map(Number),[h,m]=src.t.split(':').map(Number);
+  const at=new Date(Date.UTC(Y,M-1,D,h,m));
+  if(c.anchor==='calendar') return new Date(Date.UTC(Y,M-1,D,0,0));
+  if(c.anchor==='centre')   return new Date(at.getTime()-12*3600000);
+  return at;
+}
+// build this job's own context and paint one frame on its own canvas
+function jobFrame(rend,c,f,stepMin,startAt){
+  const t=new Date(startAt.getTime()+f*stepMin*60000);
+  const ds=`${t.getUTCFullYear()}-${pad(t.getUTCMonth()+1)}-${pad(t.getUTCDate())}`;
+  const hhmm=`${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}`;
+  const src=c.dual?c.pres:c.seed;
+  const [MY,MM_,MD]=src.d.split('-').map(Number),[Mh,Mm]=src.t.split(':').map(Number);
+  const hit=c.mark && Math.abs(t.getTime()-Date.UTC(MY,MM_-1,MD,Mh,Mm))<stepMin*60000/2;
+
+  let a=mom(c.seed.d,c.seed.t,c.seed.lat,c.seed.lon,c.seed.tz), b=null, r;
+  if(c.dual){ b=mom(ds,hhmm,c.pres.lat,c.pres.lon,c.pres.tz); r=rel(a,b); }
+  else { a=mom(ds,hhmm,c.seed.lat,c.seed.lon,c.seed.tz); r=selfRel(a); }
+  rend.ctx={A:a,B:b,REL:r,CIPHER:encrypt(c.msg,a,b),P:c.P};
+  rend.render(90,true);
+  if(hit) rend.flash();
+  rend.stamp({
+    title:c.cfg_name||c.name,
+    subtitle:(c.seed.place||'').split(',').slice(0,2).join(',')+(c.dual&&c.pres.place?`  →  ${c.pres.place.split(',').slice(0,2).join(',')}`:''),
+    lines:[
+      `seed     ${c.seed.d} ${c.seed.t}   ${c.seed.lat.toFixed(3)}, ${c.seed.lon.toFixed(3)}   LST ${(c.dual?a:mom(c.seed.d,c.seed.t,c.seed.lat,c.seed.lon,c.seed.tz)).angle.toFixed(2)}\u00b0`,
+      c.dual ? `present  ${ds} ${hhmm}   ${c.pres.lat.toFixed(3)}, ${c.pres.lon.toFixed(3)}   LST ${b.angle.toFixed(2)}\u00b0   sep ${r.sep.toFixed(2)}\u00b0`
+             : `sweeping ${ds} ${hhmm}   LST ${a.angle.toFixed(2)}\u00b0   single moment`,
+      hit ? '\u25c6 THE MOMENT' : ''
+    ].filter(Boolean),
+    right:'#'+c.P.seed
+  });
+}
+
+async function runJob(job){
+  const c=job.cfg; c.cfg_name=c.name;
+  const FR=c.frames, stepMin=1440/FR, FPS=12;
+  const rend=await spawnRenderer();
+  const startAt=jobStart(c);
+  const t0=performance.now();
+  const tick=f=>{
+    job.pct=Math.round((f+1)/FR*100);
+    const eta=Math.round((performance.now()-t0)/(f+1)*(FR-f-1)/1000);
+    job.note=`frame ${f+1} of ${FR} · about ${eta}s left`;
+    renderQueue();
+  };
+  try{
+    if(c.format==='zip'){
+      await loadJSZip();
+      const zip=new JSZip();
+      for(let f=0;f<FR;f++){
+        if(job.cancel) return;
+        jobFrame(rend,c,f,stepMin,startAt);
+        const b=await new Promise(r=>rend.canvas.toBlob(r,'image/png'));
+        if(!b) throw new Error('frame '+f+' failed to encode');
+        zip.file(slug(c.name)+'-'+String(f).padStart(4,'0')+'.png',b);
+        tick(f);
+        await new Promise(r=>setTimeout(r,0));   // yield: UI stays live, other job advances
+      }
+      job.note='compressing…'; renderQueue();
+      job.blob=await zip.generateAsync({type:'blob'});
+      job.filename=slug(c.name)+'-frames-'+c.P.seed+'.zip';
+    }else{
+      if(typeof MediaRecorder==='undefined'||typeof rend.canvas.captureStream!=='function')
+        throw new Error('this browser cannot capture canvas video — choose the PNG ZIP format');
+      let mime='';
+      for(const m of ['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'])
+        if(MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m)){mime=m;break;}
+      // frame-accurate capture: 0 fps + explicit requestFrame, no wall-clock pacing,
+      // and it runs off-screen so a background tab doesn't starve it
+      const st=rend.canvas.captureStream(0);
+      const track=st.getVideoTracks()[0];
+      if(!track) throw new Error('captureStream gave no video track');
+      if(typeof track.requestFrame!=='function')
+        throw new Error('this browser needs the visible canvas to record — choose the PNG ZIP format');
+      const rec=new MediaRecorder(st,mime?{mimeType:mime,videoBitsPerSecond:6e6}:undefined);
+      const chunks=[]; let recErr=null;
+      rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+      rec.onerror=e=>{ recErr=(e&&e.error&&e.error.name)||'recorder error'; };
+      rec.start(250);
+      await new Promise(r=>setTimeout(r,120));
+      for(let f=0;f<FR;f++){
+        if(job.cancel||recErr) break;
+        jobFrame(rend,c,f,stepMin,startAt);
+        track.requestFrame();
+        tick(f);
+        await new Promise(r=>setTimeout(r,Math.max(4,1000/FPS)));
+      }
+      await new Promise(r=>setTimeout(r,300));
+      await new Promise(r=>{rec.onstop=r; try{rec.stop();}catch(e){r();}});
+      st.getTracks().forEach(t=>t.stop());
+      if(job.cancel) return;
+      if(recErr) throw new Error('recorder error — '+recErr);
+      const type=(rec.mimeType||mime||'video/webm').split(';')[0];
+      job.blob=new Blob(chunks,{type});
+      if(job.blob.size<2000) throw new Error('capture came back empty — choose the PNG ZIP format');
+      job.filename=slug(c.name)+'-24h-'+c.P.seed+(type.includes('mp4')?'.mp4':'.webm');
+    }
+    dl(job.blob,job.filename);
+    job.note=`${(job.blob.size/1048576).toFixed(1)} MB · ${job.filename}`;
+    LOG('"'+c.name+'" complete — '+job.filename);
+  } finally {
+    rend.destroy();
+  }
+}
+
+// ═══ TRANSMISSION ═════════════════════════════════════════════════
+const SUBJ={1:'What begins here',2:'What is held between two',3:'What wants saying',4:'What is being built',
+5:'What refuses to sit still',6:'What others arrange themselves around',7:'What can only be found alone',
+8:'What is being paid for',9:'What is finishing'};
+const VERB={0:'has already arrived',1:'is still one turn away',2:'is arriving out of order',
+3:'has been arriving the whole time',4:'will arrive without announcement',5:'arrives only if unforced',
+6:'is arriving through someone else',7:'has arrived and been missed',8:'is arriving late and intact'};
+const COND={conjunction:'while the old thing and the new thing occupy the same ground',
+sextile:'through a gap that will not stay open',square:'against resistance that is doing useful work',
+trine:'along a line that requires no argument',opposition:'from directly across the distance'};
+const CLOSE={0:'Do not force the count.',1:'The structure is older than the pressure on it.',
+2:'What repeats is not what matters.',3:'Take the longer way; it is the only one that holds.',
+4:'The gap is the instruction.',5:'Nothing here needs resolving today.',
+6:'Carry less than you think you must.',7:'The quiet part is load-bearing.',8:'Finish before beginning again.'};
+const PLACE=a=>a<0.01?'Everything is happening where it started.':a<15?'The ground has shifted just enough to matter.':'Distance is now part of the message.';
+function transmission(){
+  if(!B) return `${SUBJ[A.root]} stands alone, without a second moment to measure it against. ${CLOSE[(A.order+A.root)%9]}`;
+  const lock=REL.locked?'The two orders share a factor; what comes has somewhere to sit.'
+    :'The two orders share nothing; what comes will not settle, and should not be made to.';
+  return `${SUBJ[REL.rootPair]} ${VERB[REL.dayMod%9]}, ${COND[REL.aspect.name]}. ${PLACE(REL.arc)} ${lock} ${CLOSE[(REL.resonance+REL.weekMod)%9]}`;
+}
+
+// ═══ DECODE ═══════════════════════════════════════════════════════
+const RW={1:'initiation',2:'pairing',3:'expression',4:'structure',5:'movement',
+6:'responsibility',7:'withdrawal',8:'consequence',9:'completion'};
+const MM=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const fm=M=>`${M.D} ${MM[M.M-1]} ${M.Y}, ${String(M.h).padStart(2,'0')}:${String(M.m).padStart(2,'0')} @ ${M.lat.toFixed(3)}, ${M.lon.toFixed(3)}`;
+function renderDecode(){
+  const r=[];
+  r.push([`${A.order}-fold gold`,`Seed layer's rotational order, from its year digits. Every gold stroke repeats ${A.order} times around centre.`]);
+  if(B) r.push([`${B.order}-fold blue`,`Present layer, from ${B.Y}, turning the other way and sheared by the present latitude (${B.lat.toFixed(2)}°).`]);
+  r.push([`LST ${hms(A.angle)}`,`Seed local sidereal time, ${A.angle.toFixed(2)}° — from date, clock time, UTC offset and longitude ${A.lon.toFixed(3)}°.`]);
+  if(B){
+    r.push([`LST ${hms(B.angle)}`,`Present local sidereal time, ${B.angle.toFixed(2)}°. Gains ~4 min/day on the clock.`]);
+    r.push([`${REL.sep.toFixed(2)}° separation`,`The real sky angle between the moments. Sets every rotational offset in the piece.`]);
+    r.push([`${REL.aspect.name}${REL.exact?' (exact)':` (${REL.orb.toFixed(1)}° off)`}`,`Nearest clean angle is ${REL.aspect.deg}° — ${REL.aspect.gloss}. Selects the transmission's middle clause.`]);
+    r.push([`arc ${REL.arc.toFixed(3)}°`,`${Math.round(REL.km).toLocaleString()} km between the places, rotating the present layer out of register.`]);
+    r.push([`resonance ${REL.resonance}`,REL.locked?`Orders share a factor of ${REL.resonance} — the layers lock onto a common frame.`:`Orders share no factor; the figure stays in productive disagreement with itself.`]);
+    r.push([`${Math.min(REL.beat,144)} nodes`,`Beat frequency lcm(${A.order},${B.order}) = ${REL.beat}. The ember ring marks where the rotations coincide.`]);
+    r.push([`${REL.days.toLocaleString()} days`,`Elapsed. ${REL.dayMod===0?`An exact multiple of ${A.order}.`:`${REL.dayMod} past a multiple of ${A.order}.`} Selects the transmission's verb.`]);
+    r.push([`root ${A.root} → ${B.root}`,`${RW[A.root]} → ${RW[B.root]}, compounding to ${REL.rootPair} (${RW[REL.rootPair]}). Selects the transmission's subject.`]);
+  } else {
+    r.push(['single moment','The present moment is switched off. One layer, no interference ring, no displacement — the seed moment measured only against itself.']);
+    r.push([`root ${A.root}`,`${RW[A.root]}. With no second moment there is nothing to compound it against.`]);
+  }
+  r.push([`${CIPHER.length} glyphs`,`The outer tick ring is the ciphertext — one mark per character, length encoding value. Key hashed from ${B?'both moments':'the seed moment'}.`]);
+  const dom=!B?'the seed moment is the only voice here':P.presentWeight>.66?'the present moment is doing most of the drawing':P.presentWeight<.34?'the seed moment still governs almost everything':'neither moment dominates';
+  const place=!B?'':REL.arc<.01?'You are at the seed coordinates, so the present layer sits flush.':`${Math.round(REL.km).toLocaleString()} km of ground rotates the present layer ${REL.arc.toFixed(2)}° out of register.`;
+  const asp=!B?'A single moment, drawn against itself.':REL.exact?`The sidereal angles fall into a near-exact ${REL.aspect.name} at ${REL.sep.toFixed(1)}°.`:`The sidereal angles sit ${REL.sep.toFixed(1)}° apart, closest to a ${REL.aspect.name} but ${REL.orb.toFixed(1)}° wide of it.`;
+  decode.innerHTML=`<h2>Decode</h2>
+    <div class="stamp">seed &nbsp;${fm(A)}${B?'<br>present &nbsp;'+fm(B):''}<br>print #${P.seed}</div>
+    <div class="oracle"><span class="lbl">TRANSMISSION</span>${transmission()}</div>
+    <div class="verdict">${asp} ${place} In this print, ${dom}. Gold is what was already true${B?', blue is what is currently happening to it, ember marks agreement — and the voids are where they don\'t':''}.</div>
+    <table>${r.map(x=>`<tr><td class="k">${x[0]}</td><td class="v">${x[1]}</td></tr>`).join('')}</table>
+    <div class="note">Sidereal time, great-circle distance, the digit arithmetic and the cipher are computed exactly — the cipher is genuinely reversible and keyed to these moments, though it is a puzzle rather than security. The transmission is generated by indexing fixed word banks with those same numbers: deterministic and reproducible, but a convention this piece defines rather than a message recovered from the sky.</div>`;
+}
+</script>
+</body>
+</html>
