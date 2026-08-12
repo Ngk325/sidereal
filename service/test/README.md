@@ -1,6 +1,6 @@
 # Tests
 
-Two suites, no framework, no build step beyond one `tsc` call the worker test
+Three suites, no framework, no build step beyond one `tsc` call the worker test
 makes for itself.
 
 ## The worker's guards
@@ -43,6 +43,24 @@ in a bare checkout.
 The page loads p5 and JSZip from a CDN, so this needs network access. To run
 offline, drop `p5.min.js` and `jszip.min.js` beside these files — they are
 gitignored — and they will be served from disk instead.
+
+## The length that adapts to the deployment
+
+```bash
+cd service/test && node adapt.test.mjs
+```
+
+The default length is a full minute at 60fps — 3600 frames, which is right when a
+server draws them and a long wait when a browser tab does. So a page that probes
+and finds no service steps its default down to ten seconds.
+
+Three things have to hold, and only the first is the feature: it steps down when
+there is no API; it leaves a length the visitor picked by hand alone, even across
+a re-probe; and it does not touch the value at all when the service is up. The
+second is the one worth keeping a test for — an adaptive default that overrides a
+deliberate choice is a bug, not a convenience.
+
+Same playwright and `CHROMIUM_PATH` arrangement as above.
 
 ## After a deploy
 
