@@ -1,0 +1,26 @@
+name: Deploy site
+
+# Manual only. It needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in
+# Settings → Secrets and variables → Actions; on a push trigger without them it
+# would fail on every commit and put a red X on work that is fine. Run it from the
+# Actions tab once the secrets exist, or add a push trigger back then.
+# For a free deploy that needs no secrets at all, see pages.yml.
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Deliberately NOT `sidereal-ink` — that name belongs to the render
+          # service, which serves this same site alongside its API. Publishing a
+          # static-assets Worker over it would delete /api/render, and the front
+          # end would fall back to browser rendering without erroring: a failure
+          # nobody would notice. If you deploy the service, delete this workflow.
+          command: deploy --assets ./site --name sidereal-ink-site
