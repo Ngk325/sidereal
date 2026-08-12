@@ -1,0 +1,18 @@
+{
+  "name": "sidereal-ink-service",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit --target es2022 --module esnext --moduleResolution bundler --lib es2022 --skipLibCheck --types @cloudflare/workers-types src/index.ts",
+    "test": "node ../test/worker.test.mjs"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "^0.3.7"
+  },
+  "devDependencies": {
+    "wrangler": "^4.120.1",
+    "@cloudflare/workers-types": "^5.20260811.1",
+    "typescript": "^5.6.0"
+  }
+}

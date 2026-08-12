@@ -1,0 +1,50 @@
+{
+  "name": "sidereal-ink",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-11",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+
+  "vars": {
+    "MAIL_FROM": "Sidereal Ink <renders@yourdomain.com>",
+    // Renders allowed per IP. Set either to "0" to disable that window.
+    "RATE_PER_HOUR": "3",
+    "RATE_PER_DAY": "10"
+  },
+
+  "kv_namespaces": [
+    { "binding": "JOBS", "id": "499c4007141b4be0b2446aa37fe88cb3" }
+  ],
+
+  "r2_buckets": [
+    { "binding": "RENDERS", "bucket_name": "sidereal-renders" }
+  ],
+
+  "queues": {
+    "producers": [{ "binding": "RENDER_QUEUE", "queue": "sidereal-renders" }],
+    "consumers": [{
+      "queue": "sidereal-renders",
+      "max_batch_size": 1,
+      "max_concurrency": 4,
+      "max_retries": 2
+    }]
+  },
+
+  "containers": [
+    {
+      "class_name": "Renderer",
+      "image": "../container/Dockerfile",
+      "instance_type": "standard-1",
+      "max_instances": 6
+    }
+  ],
+
+  "durable_objects": {
+    "bindings": [{ "class_name": "Renderer", "name": "RENDERER" }]
+  },
+
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Renderer"] }
+  ]
+}
