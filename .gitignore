@@ -1,0 +1,20 @@
+node_modules/
+.wrangler/
+dist/
+service/worker/public/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.env.local
+.DS_Store
+frames/
+*.mp4
+*.webm
+*.zip
+!docs/*.zip
+
+# vendored copies for running service/test offline
+service/test/p5.min.js
+service/test/jszip.min.js
