@@ -196,15 +196,15 @@ td.v{line-height:1.5}
   <button class="btn g" id="pngBtn" onclick="savePNG()">↓ Download image (PNG)</button>
 
   <h3 style="font-size:14px;font-weight:600;margin:22px 0 10px;display:flex;align-items:center;gap:8px">
-    <span style="font-size:9px;color:var(--orange)">●</span>Render a 24-hour lapse</h3>
+    <span style="font-size:9px;color:var(--orange)">●</span>Render a lapse</h3>
 
   <div class="row">
     <div class="field">
-      <label>Where the moment sits in the 24 hours</label>
+      <label>Where the moment sits in the sweep</label>
       <select id="anchor" class="sel">
-        <option value="calendar">Calendar day — 00:00 to 23:50</option>
+        <option value="calendar">Calendar day — from 00:00</option>
         <option value="start" selected>Moment at start — loops seamlessly</option>
-        <option value="centre">Moment at centre — ±12 hours</option>
+        <option value="centre">Moment at centre — half before, half after</option>
       </select>
     </div>
     <div class="field">
@@ -218,11 +218,28 @@ td.v{line-height:1.5}
   <div class="row">
     <div class="field">
       <label>Length</label>
-      <select id="frames" class="sel">
-        <option value="6">Test — 6 frames, about 5 seconds</option>
-        <option value="48">Short — 48 frames, 30-minute steps</option>
-        <option value="144" selected>Full — 144 frames, 10-minute steps</option>
-        <option value="288">Fine — 288 frames, 5-minute steps</option>
+      <select id="lapse" class="sel">
+        <option value="60,60" selected>One minute at 60fps — 3600 frames</option>
+        <option value="60,30">One minute at 30fps — 1800 frames</option>
+        <option value="20,60">Twenty seconds at 60fps — 1200 frames</option>
+        <option value="0.5,12">Test — 6 frames</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>How much sky it sweeps</label>
+      <select id="span" class="sel">
+        <option value="12" selected>12 hours — the calmest motion</option>
+        <option value="24">24 hours — a full day, moving twice as fast</option>
+        <option value="6">6 hours — slower still</option>
+      </select>
+    </div>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label>Quality</label>
+      <select id="quality" class="sel">
+        <option value="web" selected>Web — 1440px, plays anywhere</option>
+        <option value="master">Master — 1440px, full chroma, will not play in Safari</option>
       </select>
     </div>
     <div class="field">
@@ -317,13 +334,18 @@ function arcDeg(a1,o1,a2,o2){const r=Math.PI/180,a=a1*r,b=a2*r,d=(o2-o1)*r;
 const dg=n=>String(Math.abs(n)).split('').map(Number), sm=a=>a.reduce((x,y)=>x+y,0);
 function r9(n){while(n>9)n=sm(dg(n));return n;}
 function gcd(a,b){return b?gcd(b,a%b):a;} function lcm(a,b){return a*b/gcd(a,b);}
-function mom(ds,ts,lat,lon,tz){
+// `sec` is the seconds past the minute h:m. It reaches the sidereal angle and
+// nothing else: the digit registers below are sums over a clock reading, and a
+// clock reading has no fractional part to sum. Omitting it — as everything except
+// the lapse does — gives exactly the old behaviour, which is what keeps this
+// bit-identical to render.py. See moment() there.
+function mom(ds,ts,lat,lon,tz,sec){
   const [Y,M,D]=ds.split('-').map(Number),[h,m]=ts.split(':').map(Number);
   const tot=sm(dg(Y))+sm(dg(M))+sm(dg(D));
   return {Y,M,D,h,m,lat,lon,tz,date:new Date(Date.UTC(Y,M-1,D,h,m)-tz*3600000),
     order:Math.max(2,r9(sm(dg(Y)))),points:tot,spokes:Math.max(5,D),
     petals:Math.max(3,sm(dg(h))+sm(dg(m))),rings:Math.max(3,r9(D)),root:r9(tot),
-    angle:lstDeg(Y,M,D,h,m,tz,lon)};
+    angle:lstDeg(Y,M,D,h,m+(sec||0)/60,tz,lon)};
 }
 function rel(a,b){
   const sep=((b.angle-a.angle)%360+360)%360;
@@ -724,8 +746,10 @@ function toServiceConfig(c){
     place_label:placeLabel(c),
     seed:{date:c.seed.d,time:c.seed.t,lat:c.seed.lat,lon:c.seed.lon,tz:c.seed.tz},
     anchor:c.anchor,
-    frames:c.frames,
-    fps:12,
+    duration:c.duration,          // the server derives frames from duration x fps
+    fps:c.fps,
+    span_hours:c.spanHours,
+    quality:c.quality,
     print_seed:c.P.seed,
     message:c.msg,
     mark:c.mark
@@ -815,18 +839,28 @@ function snapshot(){
     pres:{d:tD.value,t:tT.value,lat:F('tLat'),lon:F('tLon'),tz:F('tTZ'),place:tP.value},
     anchor:document.getElementById('anchor').value,
     mark:document.getElementById('markMoment').checked,
-    frames:parseInt(document.getElementById('frames').value),
+    duration:lapseChoice()[0],
+    fps:lapseChoice()[1],
+    frames:Math.max(1,Math.round(lapseChoice()[0]*lapseChoice()[1])),
+    spanHours:parseFloat(document.getElementById('span').value),
+    quality:document.getElementById('quality').value,
     format:document.getElementById('format').value,
     msg:msgIn.value,
     P:JSON.parse(JSON.stringify(P))
   };
+}
+// "seconds,fps" — the piece is specified the way it is watched.
+function lapseChoice(){
+  const [d,f]=(document.getElementById('lapse').value||'60,60').split(',').map(Number);
+  return [d,f];
 }
 function autoName(){
   return (nP.value.split(',')[0]||'Sidereal Ink').trim()+' '+nD.value;
 }
 function metaLine(c){
   const anc={calendar:'calendar day',start:'moment at start',centre:'moment at centre'}[c.anchor];
-  return `${c.frames} frames · ${Math.round(1440/c.frames)}-min steps · ${anc} · ${c.format==='zip'?'PNG ZIP':'video'} · print #${c.P.seed}`;
+  const step=c.spanHours*60/c.frames, stepTxt=step<1?`${Math.round(step*60)}-second`:`${Math.round(step)}-minute`;
+  return `${c.duration}s at ${c.fps}fps · ${c.frames} frames · ${stepTxt} steps · ${c.spanHours}h sweep · ${anc} · ${c.format==='zip'?'PNG ZIP':'video'} · print #${c.P.seed}`;
 }
 function momentsLine(c){
   return c.dual ? `seed ${c.seed.d} ${c.seed.t} → present ${c.pres.d} ${c.pres.t}`
@@ -855,6 +889,11 @@ async function enqueue(){
     QUEUE.push(job);
     renderQueue();
     LOG('queued "'+cfg.name+'" — '+metaLine(cfg)+(remote?' · on the server':' · in this browser'));
+    // The browser draws a frame in roughly the time the server draws four, on one
+    // thread it also needs for the page. A minute at 60fps is 3600 of them.
+    if(!remote && cfg.frames>600)
+      LOG('note — '+cfg.frames+' frames is a long render in a browser tab. A shorter length, '
+          +'or the hosted service, will get there sooner.');
     if(remote){
       submitRemote(job).catch(err=>{
         job.status='failed'; job.pct=100; job.note=err.message; job.canRetryLocal=true;
@@ -955,7 +994,7 @@ function jobStart(c){
   const [Y,M,D]=src.d.split('-').map(Number),[h,m]=src.t.split(':').map(Number);
   const at=new Date(Date.UTC(Y,M-1,D,h,m));
   if(c.anchor==='calendar') return new Date(Date.UTC(Y,M-1,D,0,0));
-  if(c.anchor==='centre')   return new Date(at.getTime()-12*3600000);
+  if(c.anchor==='centre')   return new Date(at.getTime()-(c.spanHours/2)*3600000);
   return at;
 }
 // build this job's own context and paint one frame on its own canvas
@@ -963,13 +1002,14 @@ function jobFrame(rend,c,f,stepMin,startAt){
   const t=new Date(startAt.getTime()+f*stepMin*60000);
   const ds=`${t.getUTCFullYear()}-${pad(t.getUTCMonth()+1)}-${pad(t.getUTCDate())}`;
   const hhmm=`${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}`;
+  const sec=t.getUTCSeconds()+t.getUTCMilliseconds()/1000;   // the rest of the instant
   const src=c.dual?c.pres:c.seed;
   const [MY,MM_,MD]=src.d.split('-').map(Number),[Mh,Mm]=src.t.split(':').map(Number);
   const hit=c.mark && Math.abs(t.getTime()-Date.UTC(MY,MM_-1,MD,Mh,Mm))<stepMin*60000/2;
 
   let a=mom(c.seed.d,c.seed.t,c.seed.lat,c.seed.lon,c.seed.tz), b=null, r;
-  if(c.dual){ b=mom(ds,hhmm,c.pres.lat,c.pres.lon,c.pres.tz); r=rel(a,b); }
-  else { a=mom(ds,hhmm,c.seed.lat,c.seed.lon,c.seed.tz); r=selfRel(a); }
+  if(c.dual){ b=mom(ds,hhmm,c.pres.lat,c.pres.lon,c.pres.tz,sec); r=rel(a,b); }
+  else { a=mom(ds,hhmm,c.seed.lat,c.seed.lon,c.seed.tz,sec); r=selfRel(a); }
   rend.ctx={A:a,B:b,REL:r,CIPHER:encrypt(c.msg,a,b),P:c.P};
   rend.render(90,true);
   if(hit) rend.flash();
@@ -988,7 +1028,7 @@ function jobFrame(rend,c,f,stepMin,startAt){
 
 async function runJob(job){
   const c=job.cfg; c.cfg_name=c.name;
-  const FR=c.frames, stepMin=1440/FR, FPS=12;
+  const FR=c.frames, stepMin=c.spanHours*60/FR, FPS=c.fps;
   const rend=await spawnRenderer();
   const startAt=jobStart(c);
   const t0=performance.now();
@@ -1048,7 +1088,7 @@ async function runJob(job){
       const type=(rec.mimeType||mime||'video/webm').split(';')[0];
       job.blob=new Blob(chunks,{type});
       if(job.blob.size<2000) throw new Error('capture came back empty — choose the PNG ZIP format');
-      job.filename=slug(c.name)+'-24h-'+c.P.seed+(type.includes('mp4')?'.mp4':'.webm');
+      job.filename=slug(c.name)+'-'+c.spanHours+'h-'+c.P.seed+(type.includes('mp4')?'.mp4':'.webm');
     }
     dl(job.blob,job.filename);
     job.note=`${(job.blob.size/1048576).toFixed(1)} MB · ${job.filename}`;

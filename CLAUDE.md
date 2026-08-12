@@ -112,8 +112,17 @@ Full service — needs the Workers **paid** plan (Containers and Queues), Docker
 locally for the first image build, and a Resend account with a verified domain. Steps in
 `service/README.md`. The Worker, queue wiring and email path are written against current
 docs but **have not been run against live infrastructure** — expect to fix a binding name
-or two on first deploy. The renderer itself is tested: about 0.9s per frame, so a
-144-frame lapse is 2–3 minutes of container CPU.
+or two on first deploy. The renderer itself is tested: about 107ms per frame at 1440px,
+so a 60-second lapse (3600 frames at 60fps) is roughly 3–4 minutes on the four cores
+`standard-4` provides. It needs those cores — see *Timing and cost* in
+`service/README.md` before dropping the instance type.
+
+**The lapse is specified as a duration, not a frame count**, and time runs continuously
+through it. The digit registers still read the clock in whole minutes — they step,
+because a clock reading is a discrete thing — but the sidereal angle reads the exact
+instant. Passing only `h` and `m` to `moment()` quantises the whole plate to the minute,
+which makes every frame inside a tick byte-identical and turns the lapse back into a
+slideshow. Both implementations carry an optional `sec`; keep them in step.
 
 ---
 
