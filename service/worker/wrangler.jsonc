@@ -7,7 +7,10 @@
   "assets": { "directory": "./public", "binding": "ASSETS" },
 
   "vars": {
-    "MAIL_FROM": "Sidereal Ink <renders@yourdomain.com>",
+    // Must be an address on a domain verified in Resend, or every send fails.
+    // insuranceprosct.com is the one that is verified; change both this and the
+    // domain in Resend together if the piece gets a sender of its own.
+    "MAIL_FROM": "Sidereal Ink <renders@insuranceprosct.com>",
     // Renders allowed per IP. Set either to "0" to disable that window.
     "RATE_PER_HOUR": "3",
     "RATE_PER_DAY": "10"

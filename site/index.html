@@ -218,10 +218,11 @@ td.v{line-height:1.5}
   <div class="row">
     <div class="field">
       <label>Length</label>
-      <select id="lapse" class="sel">
+      <select id="lapse" class="sel" onchange="LAPSE_CHOSEN=true">
         <option value="60,60" selected>One minute at 60fps — 3600 frames</option>
         <option value="60,30">One minute at 30fps — 1800 frames</option>
         <option value="20,60">Twenty seconds at 60fps — 1200 frames</option>
+        <option value="10,60">Ten seconds at 60fps — 600 frames</option>
         <option value="0.5,12">Test — 6 frames</option>
       </select>
     </div>
@@ -730,12 +731,30 @@ function probeService(){
   return SERVICE.promise;
 }
 
+// The default length assumes a server is there to render it. A full minute at
+// 60fps is 3600 frames, which the browser draws on the one thread it is also
+// running the page with — fine on the service, a long wait in a tab. So when the
+// probe finds nothing, the length steps down to something a tab can finish.
+//
+// A choice made by hand always wins: this only ever moves a default nobody has
+// touched, and only in the one direction, so it cannot undo a deliberate pick or
+// fight the user each time the probe re-runs.
+let LAPSE_CHOSEN=false;
+const BROWSER_LAPSE='10,60';
+
 function applyRenderMode(){
   const on=SERVICE.ok;
   document.getElementById('emailField').style.display=on?'':'none';
+  const lapse=document.getElementById('lapse');
+  if(!on && !LAPSE_CHOSEN && lapse && lapse.value!==BROWSER_LAPSE
+     && [...lapse.options].some(o=>o.value===BROWSER_LAPSE)){
+    lapse.value=BROWSER_LAPSE;
+    LOG('length set to ten seconds — the full minute is 3600 frames, which is a long '
+       +'render in a browser tab. Change it back if you want to wait.');
+  }
   document.getElementById('queueNote').textContent=on
     ? 'Renders run on the server. Close the tab if you like — the link arrives by email when it finishes, and the job card below keeps updating while this page is open. PNG frame sequences still render in this browser.'
-    : 'Queued renders process one at a time in this browser. You can keep changing the moments and queue more while one runs — each job keeps its own settings. Video capture needs this tab visible; the ZIP format keeps working in the background.';
+    : 'Queued renders process one at a time in this browser, so the length starts short — the longer options are there, they just take a while. You can keep changing the moments and queue more while one runs; each job keeps its own settings. Video capture needs this tab visible, and its pace follows how fast the frames draw; the ZIP format keeps working in the background.';
 }
 
 // The browser's snapshot() is not the server's schema. Map, don't reshape the
