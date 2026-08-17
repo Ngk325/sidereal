@@ -54,9 +54,11 @@ saying anything was wrong.
 
 ## Deploy the render service
 
-Browser rendering blocks the UI thread — that's a JavaScript constraint, not a bug to optimise away. The service moves rendering to a container so you can close the tab and get an email when it's done. See [`service/README.md`](service/README.md).
+Browser rendering blocks the UI thread — that's a JavaScript constraint, not a bug to optimise away. It also stops when the tab is backgrounded, because browsers clamp timers in hidden tabs. The service moves rendering to a container so you can queue several, close the tab, and get an email when they're done.
 
-Requires the Cloudflare Workers paid plan (Containers and Queues) and a Resend account.
+**[`DEPLOY.md`](DEPLOY.md) is the runbook** — what's already provisioned, what still has to be bought or created, the deploy sequence, and the traps. [`service/README.md`](service/README.md) is the reference for how the thing is built.
+
+Requires the Cloudflare Workers paid plan (Containers and Queues) and a Resend account. Written and tested, but never yet run against live infrastructure.
 
 The front end finds out for itself. On load it asks once whether `/api/render` exists: if it does, the render card grows an email field and lapses are submitted to the server, polled, and linked when they finish. If it doesn't — a static host, or a file opened from disk — nothing is said about it and the in-browser renderer handles the job as before. PNG frame sequences always render in the browser, since the service emits mp4. A job the server refuses can be moved to the browser with one click.
 
