@@ -71,6 +71,22 @@ await withPage('static', async (page, srv, logs) => {
   t('the helper text describes the browser queue', (await page.locator('#queueNote').innerText()).includes('in this browser'));
   t('no uncaught page errors', !logs.some(l => l.startsWith('PAGEERROR')), logs.filter(l => l.startsWith('PAGEERROR'))[0]);
 
+  // No message is the default, so the empty cipher is the common path rather than
+  // an edge case. What matters is that nothing claims a mark that was not drawn:
+  // an empty message means no glyph ring, and the decode table has to say so.
+  t('the message field starts empty', (await page.locator('#msgIn').inputValue()) === '');
+  const dec = await page.locator('#decode').innerText();
+  t('the decode table reports no glyph ring', dec.includes('no glyph ring'), dec.slice(0, 100));
+  t('it does not claim "0 glyphs" against a ring that is absent', !dec.includes('0 glyphs'));
+  t('the empty message still reaches the server as a string',
+    typeof (await page.evaluate(() => toServiceConfig(snapshot()))).message === 'string');
+  await page.fill('#msgIn', 'WHAT WAS ALREADY TRUE');
+  await page.click('button:has-text("Encrypt")');
+  await page.waitForTimeout(600);
+  const dec2 = await page.locator('#decode').innerText();
+  t('a message brings the ring row back', /\d+ glyphs/.test(dec2) && !dec2.includes('no glyph ring'));
+  await page.fill('#msgIn', '');
+
   await page.selectOption('#lapse', '0.5,12');
   await page.fill('#nameIn', 'Fallback test');
   const download = page.waitForEvent('download', { timeout: 60000 }).catch(() => null);

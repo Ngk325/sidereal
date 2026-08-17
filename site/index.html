@@ -280,7 +280,7 @@ td.v{line-height:1.5}
   <div class="row">
     <div class="block">
       <h3><span class="dot">Encrypt</span></h3>
-      <div class="field"><label>Message</label><textarea id="msgIn">WHAT WAS ALREADY TRUE</textarea></div>
+      <div class="field"><label>Message — optional</label><textarea id="msgIn" placeholder="Leave empty and the figure carries no glyph ring."></textarea></div>
       <button class="btn" onclick="doEncrypt()">Encrypt &amp; draw</button>
       <div class="field" style="margin-top:12px"><label>Ciphertext — share this</label><div class="cipher" id="cipherOut">—</div></div>
       <button class="btn g" style="margin-top:8px" onclick="copyCipher()">Copy ciphertext</button>
@@ -499,7 +499,9 @@ function doDecrypt(){
     :leg>.9?'Reads cleanly — these are the right moments.'
     :'Reads as noise. One of the inputs is off.';
 }
-function copyCipher(){navigator.clipboard.writeText(CIPHER).then(()=>statusEl.textContent='Ciphertext copied.');}
+function copyCipher(){
+  if(!CIPHER){statusEl.textContent='There is no ciphertext yet — encrypt a message first.';return;}
+  navigator.clipboard.writeText(CIPHER).then(()=>statusEl.textContent='Ciphertext copied.');}
 function randomSeed_(){P.seed=Math.floor(Math.random()*999999)+1;seedIn.value=P.seed;}
 function useGeo(){
   if(!navigator.geolocation){statusEl.textContent='Geolocation unavailable — type a place instead.';return;}
@@ -1162,7 +1164,12 @@ function renderDecode(){
     r.push(['single moment','The present moment is switched off. One layer, no interference ring, no displacement — the seed moment measured only against itself.']);
     r.push([`root ${A.root}`,`${RW[A.root]}. With no second moment there is nothing to compound it against.`]);
   }
-  r.push([`${CIPHER.length} glyphs`,`The outer tick ring is the ciphertext — one mark per character, length encoding value. Key hashed from ${B?'both moments':'the seed moment'}.`]);
+  // With no message there is no ring, and the decode table must not describe one.
+  // A row reading "0 glyphs" alongside a description of the ticks would be the
+  // table claiming a mark that was never drawn.
+  r.push(CIPHER.length
+    ? [`${CIPHER.length} glyphs`,`The outer tick ring is the ciphertext — one mark per character, length encoding value. Key hashed from ${B?'both moments':'the seed moment'}.`]
+    : ['no glyph ring','No message was encrypted, so the outer tick ring is absent. The figure is the arithmetic alone.']);
   const dom=!B?'the seed moment is the only voice here':P.presentWeight>.66?'the present moment is doing most of the drawing':P.presentWeight<.34?'the seed moment still governs almost everything':'neither moment dominates';
   const place=!B?'':REL.arc<.01?'You are at the seed coordinates, so the present layer sits flush.':`${Math.round(REL.km).toLocaleString()} km of ground rotates the present layer ${REL.arc.toFixed(2)}° out of register.`;
   const asp=!B?'A single moment, drawn against itself.':REL.exact?`The sidereal angles fall into a near-exact ${REL.aspect.name} at ${REL.sep.toFixed(1)}°.`:`The sidereal angles sit ${REL.sep.toFixed(1)}° apart, closest to a ${REL.aspect.name} but ${REL.orb.toFixed(1)}° wide of it.`;
