@@ -728,6 +728,7 @@ function probeService(){
     SERVICE.ok=ok; SERVICE.probed=true; applyRenderMode();
     LOG(ok?'render service found — lapses will render on the server'
           :'no render service — rendering in this browser');
+    if(ok) restoreRemote();       // anything still running from a previous visit
     return ok;
   });
   return SERVICE.promise;
@@ -796,6 +797,7 @@ async function submitRemote(job){
   if(!body.jobId) throw new Error('the service accepted the job but returned no id');
   job.remoteId=body.jobId;
   job.note='queued on the server';
+  rememberRemote(job);            // from here it survives the tab closing
   renderQueue();
   pollRemote(job);
 }
@@ -838,9 +840,59 @@ function pollRemote(job){
   setTimeout(tick,1500);
 }
 
+// ═══ REMOTE JOBS OUTLIVE THE PAGE ═════════════════════════════════
+// A server render carries on whether or not this tab is open — that is the point
+// of the service. But the queue lives in memory, so closing the window used to
+// lose sight of it: the file still rendered and the email still arrived, and the
+// page came back knowing nothing about either. Job ids are kept here and picked
+// back up on load, finished ones included, so the download link survives a reload
+// for as long as the server keeps the file.
+//
+// The plaintext message is deliberately not stored. It is the one thing on this
+// page someone might not want left in browser storage, and no job card needs it.
+const REMOTE_KEY='sidereal.remote.v1';
+const REMOTE_TTL=30*864e5;          // the server keeps the file for 30 days
+let remoteRestored=false;
+
+const remoteStore=()=>{ try{ return JSON.parse(localStorage.getItem(REMOTE_KEY)||'[]'); }catch(e){ return []; } };
+const remoteWrite=l=>{ try{ localStorage.setItem(REMOTE_KEY,JSON.stringify(l)); }catch(e){} };
+
+function rememberRemote(job,extra){
+  if(!job.remoteId) return;
+  const {msg,...cfg}=job.cfg;                       // never store the plaintext
+  const keep=remoteStore().filter(x=>x.remoteId!==job.remoteId);
+  keep.push({remoteId:job.remoteId,cfg,at:Date.now(),...(extra||{})});
+  remoteWrite(keep.slice(-40));
+}
+function forgetRemote(remoteId){
+  if(remoteId) remoteWrite(remoteStore().filter(x=>x.remoteId!==remoteId));
+}
+function restoreRemote(){
+  if(remoteRestored) return;
+  remoteRestored=true;
+  const fresh=remoteStore().filter(x=>x.remoteId&&Date.now()-x.at<REMOTE_TTL);
+  remoteWrite(fresh);
+  let live=0;
+  for(const rec of fresh){
+    if(QUEUE.some(j=>j.remoteId===rec.remoteId)) continue;
+    const done=rec.status==='done'||rec.status==='failed';
+    const job={id:++jobSeq,cfg:rec.cfg,status:done?rec.status:'running',
+               pct:done?100:0,note:done?(rec.note||''):'picking this up again…',
+               blob:null,cancel:false,remote:true,remoteId:rec.remoteId,link:rec.link||null};
+    QUEUE.push(job);
+    if(!done){ live++; pollRemote(job); }
+  }
+  if(fresh.length){
+    renderQueue();
+    LOG(`${fresh.length} render${fresh.length>1?'s':''} from an earlier visit`
+       +(live?` — ${live} still going, asking the server` : ' — finished, links restored'));
+  }
+}
+
 function finishRemote(job,ok,note){
   job.status=ok?'done':'failed';
   job.pct=100; job.note=note;
+  rememberRemote(job,{status:job.status,note,link:job.link||null});
   HISTORY.unshift({...job, ok, at:new Date().toLocaleString()});
   renderQueue();
   LOG(`"${job.cfg.name}" ${ok?'complete':'failed'} — ${note}`+(ok&&job.link?`  ${location.origin}${job.link}`:''));
@@ -941,18 +993,21 @@ function removeJob(id){
   if(j.remote&&j.status==='running'){
     // There is no cancel in the API. Be honest: we stop watching, the server carries on.
     j.dropped=true;
+    forgetRemote(j.remoteId);      // dismissed on purpose — do not resurrect it on reload
     QUEUE=QUEUE.filter(x=>x.id!==id);
     LOG('stopped watching "'+j.cfg.name+'" — the server carries on, and the email still arrives');
   }
   else if(j.status==='running'){ j.cancel=true; j.note='cancelling…'; }
-  else { QUEUE=QUEUE.filter(x=>x.id!==id); }
+  else { forgetRemote(j.remoteId); QUEUE=QUEUE.filter(x=>x.id!==id); }
   renderQueue();
 }
 function saveJob(id){
   const j=QUEUE.concat(HISTORY).find(x=>x.id===id);
   if(j&&j.blob) dl(j.blob,j.filename);
 }
-function clearDone(){ QUEUE=QUEUE.filter(j=>j.status==='queued'||j.status==='running'); renderQueue(); }
+function clearDone(){
+  QUEUE.filter(j=>j.status!=='queued'&&j.status!=='running').forEach(j=>forgetRemote(j.remoteId));
+  QUEUE=QUEUE.filter(j=>j.status==='queued'||j.status==='running'); renderQueue(); }
 
 function renderQueue(){
   const box=document.getElementById('queue');

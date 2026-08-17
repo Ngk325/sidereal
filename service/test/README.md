@@ -1,6 +1,6 @@
 # Tests
 
-Three suites, no framework, no build step beyond one `tsc` call the worker test
+Four suites, no framework, no build step beyond one `tsc` call the worker test
 makes for itself.
 
 ## The worker's guards
@@ -61,6 +61,27 @@ second is the one worth keeping a test for — an adaptive default that override
 deliberate choice is a bug, not a convenience.
 
 Same playwright and `CHROMIUM_PATH` arrangement as above.
+
+## A server render surviving the window closing
+
+```bash
+cd service/test && node persistence.test.mjs
+```
+
+The promise of the service is that you queue work and walk away. The render always
+did carry on — it runs on the server — but the queue lived in memory, so the page
+came back knowing nothing about a job it had submitted minutes earlier. The job
+ids are in `localStorage` now.
+
+This one actually closes the page and opens a new one against the same origin, so
+it exercises the real thing rather than a simulated reload: submit, close, reopen,
+confirm the job is picked back up and polled through to done, close and reopen
+again, confirm a *finished* render still restores with its download link, and that
+clearing it forgets it for good.
+
+Two of its checks are privacy, not features — the plaintext message and the email
+address must not be in `localStorage`. The message is the one thing on that page
+someone might not want left in browser storage.
 
 ## After a deploy
 
