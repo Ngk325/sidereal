@@ -100,7 +100,10 @@ POST /api/internal/upload/abort?jobId&uploadId
 }
 ```
 
-Omit `present` for a single-moment sweep.
+Omit `present` for a single-moment sweep, and `message` for a figure with no glyph
+ring — an empty message encrypts to nothing and the outer tick ring is simply not
+drawn. That is the front end's default; the example above sets one to show the shape
+of the field.
 
 A lapse is specified the way it is watched — a `duration` in seconds and an `fps` —
 and the container multiplies them into a frame count. `frames` still works and still
